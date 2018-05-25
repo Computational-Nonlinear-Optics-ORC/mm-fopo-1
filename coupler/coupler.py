@@ -7,13 +7,9 @@ from scipy.optimize import brenth
 from scipy.integrate import simps
 import sys
 
-#@jit
-
 
 def jv_(n, z):
     return 0.5 * (jv(n-1, z) - jv(n+1, z))
-
-#@jit
 
 
 def kv_(n, z):
@@ -127,7 +123,7 @@ class Eigensolver(object):
                  (self.nclad[i]/w)**2) / (1/u**2 + 1/w**2))**0.5
 
 
-def integrate(x,y,E):
+def integrate(x, y, E):
     """
     Integrates twice using Simpsons rule from scipy
     to allow 2D  integration.
@@ -145,7 +141,6 @@ class Modes(object):
         self.k_vec = 2 * pi / lam_vec
         self.beta_vec = neff_vec * self.k_vec
         self.n = n
-        # self.wave_indexing(0)
 
     def wave_indexing(self, i):
         self.u = self.u_vec[i]
@@ -157,7 +152,8 @@ class Modes(object):
              + kv_(self.n, self.w)/(self.w*kv(self.n, self.w)))
 
     def set_coordinates(self, a):
-        self.x, self.y = [np.linspace(-3*a, 3*a, self.N_points) for i in range(2)]
+        self.x, self.y = [np.linspace(-3*a, 3*a, self.N_points)
+                          for i in range(2)]
         self.X, self.Y = np.meshgrid(self.x, self.y)
         self.R = ((self.X)**2 + (self.Y)**2)**0.5
         self.T = np.arctan(self.Y/self.X)
@@ -248,29 +244,25 @@ class Coupling_coeff(Modes):
         n0 = (self.nclad[:, np.newaxis].T*n0.T).T
         temp = np.zeros([self.N_points, self.N_points])
         for i in range(n0.shape[0]):
-            temp[rin] += self.Deltan[i]
+            temp[rin] = self.Deltan[i]
             n0[i, :, :] += temp[:, :]
         return n0
 
     def coupled_index(self, d):
         return self.fibre_ref(d)
 
-    def initialise_integrand_vectors(self,d, Eabs2):
+    def initialise_integrand_vectors(self, d, Eabs2):
         self.int1_vec = Eabs2
-        self.int2_vec = (self.coupled_index(d)**2 - self.fibre_ref()**2) * Eabs2
+        self.int2_vec = (self.coupled_index(d)**2 -
+                         self.fibre_ref()**2) * Eabs2
         return None
 
     def integrals(self):
-        return  integrate(self.x, self.y, self.int2_vec)/ \
-                integrate(self.x, self.y, self.int1_vec)
+        return integrate(self.x, self.y, self.int2_vec) / \
+            integrate(self.x, self.y, self.int1_vec)
 
-def main():
-    lmin = 1546e-9
-    lmax = 1555e-9
-    N = 2
-    a = 5e-6
-    N_points = 1024
-    d = 0.05e-6
+
+def create_coupling_coeff(lmin, lmax, N, a, N_points, d):
     e = Eigensolver(lmin, lmax, N)
     e.initialise_fibre(a)
     u_01, w_01, neff01 = [np.zeros(N) for i in range(3)]
@@ -290,36 +282,50 @@ def main():
         Eabs01[i, :, :] = m01.E_abs2()
         Eabs11[i, :, :] = m11.E_abs2()
 
-
     k01, k11 = [np.zeros(N) for i in range(2)]
     couple01 = Coupling_coeff(a, N_points, e.ncore, e.nclad, e.l_vec, neff01)
-    couple11 = Coupling_coeff(a, N_points, e.ncore, e.nclad, e.l_vec, neff11[0,:])
+    couple11 = Coupling_coeff(a, N_points, e.ncore,
+                              e.nclad, e.l_vec, neff11[0, :])
     couple01.initialise_integrand_vectors(d, Eabs01)
     couple11.initialise_integrand_vectors(d, Eabs11)
-    
-    k01 = (pi /(neff01 * c)) * couple01.integrals()
-    k11 = (pi /(neff11[0,:] * c)) *couple11.integrals()
-    
-    #for i in range(N):
-    #    k01[i] = couple01.coupling_coeff(i)
-    #    k11[i] = couple11.coupling_coeff(i)
-    
-    #(pi /(neff[i] * c)) * 
-    plt.plot(k01*couple01.f_vec)
-    plt.plot(k11*couple01.f_vec)
-    plt.show()
-    
-    n1 = couple01.coupled_index(d)
 
-    #n1 = couple.fibre_ref()
+    k01 = couple01.f_vec * (pi / (neff01 * c)) * couple01.integrals()
+    k11 = couple11.f_vec * (pi / (neff11[0, :] * c)) * couple11.integrals()
+    #k01 =   couple01.integrals()
+    #k11 =   couple11.integrals()
+    return k01, k11, couple01
+
+
+def main():
+    lmin = 1546e-9
+    lmax = 1555e-9
+    N_l = 10
+    a = 5e-6
+    N_points = 1024
+    d = 0.05e-6
+
+    k01, k11, couple01 = create_coupling_coeff(lmin, lmax, N_l, a, N_points, d)
+    fig = plt.figure()
+    plt.plot(couple01.l_vec*1e9, k01,'o-')
+    plt.plot(couple01.l_vec*1e9, k11,'o-')
+    N_l = 2
+    k01, k11, couple01 = create_coupling_coeff(lmin, lmax, N_l, a, N_points, d)
+    fig = plt.figure()
+    plt.plot(couple01.l_vec*1e9, k01,'o-')
+    plt.plot(couple01.l_vec*1e9, k11,'o-')
+    plt.show()
+
+    plt.plot(couple01.l_vec*1e9,k01/k11)
+    plt.show()
+    n1 = couple01.coupled_index(d)
     plt.contourf(1e6*couple01.X, 1e6*couple01.Y, n1[0, :, :])
-    #plt.colorbar()
+    plt.colorbar()
     plt.show()
 
     #n1 = couple.coupled_index(1e-6)
     #plt.contourf(1e6*couple.X, 1e6*couple.Y, n1[0, :, :])
-    #plt.colorbar()
-    #plt.show()
+    # plt.colorbar()
+    # plt.show()
 
     #xc = np.linspace(-a, a, 1024)
     #yc = np.sqrt(-xc**2+a**2)
