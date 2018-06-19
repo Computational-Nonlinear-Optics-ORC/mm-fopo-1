@@ -153,22 +153,9 @@ def dispersion_operator(betas, int_fwm, sim_wind):
 
 
     Dop -= fftshift(int_fwm.alpha/2, axes=-1)
-    print(betas)
-
 
     Dop[0,:] -= 1j*((betas[0,2]*(w)**2)/2. + (betas[0,3]*(w)**3)/6.)
     Dop[1,:] -= 1j*(betas[1,0] -  betas[1,1]*(w) + (betas[1,2]*(w)**2)/2. + (betas[1,3]*(w)**3)/6.)
-    
-
-    fig = plt.figure()
-    plt.plot(fftshift(np.imag(Dop[0,:])))
-    plt.savefig('1.png')
-    plt.show()
-    fig = plt.figure()
-    plt.plot(fftshift(np.imag(Dop[1,:])))
-    plt.savefig('2.png')
-    plt.show()
-
     return Dop
 
 
