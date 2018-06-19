@@ -46,6 +46,26 @@ def calc_overlaps():
     return overlaps
 
 
+
+def fibre_overlaps_loader(filepath='loading_data'):
+    """
+    Loads, or calculates if not there, the M1, M2 and Q matrixes. 
+    """
+    overlap_file = os.path.join(filepath, 'M1_M2_new_2m.hdf5')
+    
+
+    if os.path.isfile(overlap_file):
+        keys = ('M1', 'M2', 'Q')
+        data = []
+        with h5py.File(overlap_file, 'r') as f:
+            for i in keys:
+                data.append(f.get(str(i)).value)
+        data = tuple(data)
+    else:
+        data = main()
+    return data
+
+
 def save_variables(filename, **variables):
 
     with h5py.File(filename + '.hdf5', 'a') as f:
@@ -66,7 +86,7 @@ def main():
     M1[4, :] = np.uint8(np.real(M1_load[-1, :] - 1))
     D = {'M1': M1, 'M2': M2, 'Q': Q_matrix}
     save_variables('loading_data/M1_M2_new_2m', **D)
-
+    return M1, M2, Q_matrix
 
 if __name__ == '__main__':
     if os.path.isfile('loading_data/M1_M2_new_2m.hdf5'):

@@ -5,7 +5,7 @@ import os
 import pytest
 import numpy as np
 from numpy.testing import assert_allclose
-
+import overlaps
 def test_read_write1():
     #os.system('rm testing_data/hh51_test.hdf5')
     A = np.random.rand(10, 3, 5) + 1j * np.random.rand(10, 3, 5)
@@ -55,6 +55,7 @@ def test_read_write3():
     return None
 
 
+
 def test_dbm2w():
     assert dbm2w(30) == 1
 
@@ -72,3 +73,20 @@ def test2_w2dbm():
 def test3_w2dbm():
     with pytest.raises(ZeroDivisionError):
         w2dbm(-1)
+
+def test_load_fibre_param():
+    os.system('rm loading_data/M1_M2_new_2m.hdf5')
+    M1_,M2_,Q_ = overlaps.fibre_overlaps_loader()
+
+    M1, M2,Q = overlaps.fibre_overlaps_loader()
+    assert_allclose(M1, np.array([[0, 0, 0, 0, 1, 1, 1, 1],
+                                     [0, 0, 1, 1, 0, 0, 1, 1],
+                                     [0, 1, 0, 1, 0, 1, 0, 1],
+                                     [0, 1, 1, 0, 1, 0, 0, 1],
+                                     [0, 1, 2, 3, 2, 3, 0, 1]]))
+
+    assert_allclose(M2, np.array([[0, 1, 0, 1], [0, 1, 1, 0]]))
+    assert_allclose(M1,M1_)
+    assert_allclose(M2, M2_)
+    assert_allclose(Q, Q_)
+    assert_allclose(Q[0,:], Q[1,:])

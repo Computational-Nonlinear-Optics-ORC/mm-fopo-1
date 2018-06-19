@@ -110,7 +110,7 @@ def test_time_frequency():
 "----------------Raman response--------------"
 #os.system('rm -r testing_data/step_index/*')
 
-
+"""
 class Raman():
     l_vec = np.linspace(1600e-9, 1500e-9, 64)
     fv = 1e-12*c/l_vec
@@ -193,37 +193,63 @@ class Raman():
 "----------------------------Dispersion operator--------------"
 
 
-class Test_dispersion_raman(Raman):
+#class Test_dispersion_raman(Raman):
 
-    l_vec = np.linspace(1600e-9, 1500e-9, 64)
-    int_fwm = sim_parameters(2.5e-20, 2, 0)
-    int_fwm.general_options(1e-13, 0, 1, 1)
-    int_fwm.propagation_parameters(6, [0,18], 2, 1, 1)
-    sim_wind = \
-        sim_window(1e-12*c/l_vec, (l_vec[0]+l_vec[-1])*0.5,
-                   (l_vec[0]+l_vec[-1])*0.5, int_fwm, 10)
-    loss = Loss(int_fwm, sim_wind, amax=10)
-    alpha_func = loss.atten_func_full(sim_wind.fv)
-    int_fwm.alphadB = alpha_func
-    int_fwm.alpha = int_fwm.alphadB
-    betas_disp = dispersion_operator(Raman.betas, int_fwm, sim_wind)
+#    l_vec = np.linspace(1600e-9, 1500e-9, 64)
+#    int_fwm = sim_parameters(2.5e-20, 2, 0)
+#    int_fwm.general_options(1e-13, 0, 1, 1)
+#    int_fwm.propagation_parameters(6, [0,18], 2, 1, 1)
+#    sim_wind = \
+#        sim_window(1e-12*c/l_vec, (l_vec[0]+l_vec[-1])*0.5,
+#                   (l_vec[0]+l_vec[-1])*0.5, int_fwm, 10)
+#    loss = Loss(int_fwm, sim_wind, amax=10)
+#    alpha_func = loss.atten_func_full(sim_wind.fv)
+#    int_fwm.alphadB = alpha_func
+#    int_fwm.alpha = int_fwm.alphadB
+#    betas_disp = dispersion_operator(Raman.betas, int_fwm, sim_wind)
+#
+#    #def test_dispersion(self):
+#        #"""
+#        #Compares the dispersion to a predetermined value.
+#        #Not a very good test, make sure that the other one in this class
+#        #passes. 
+#        #"""
+#      
+##        #with h5py.File('testing/testing_data/betas_test1.hdf5', 'r') as f:
+#        #    betas_exact = f.get('betas').value
+#
+#        #assert_allclose(self.betas_disp, betas_exact)
 
-    def test_dispersion(self):
-        """
-        Compares the dispersion to a predetermined value.
-        Not a very good test, make sure that the other one in this class
-        passes. 
-        """
-      
-        with h5py.File('testing/testing_data/betas_test1.hdf5', 'r') as f:
-            betas_exact = f.get('betas').value
-
-        assert_allclose(self.betas_disp, betas_exact)
-
-    def test_dispersion_same(self):
-        """
-        Tests if the dispersion of the first two modes (degenerate) are the same. 
-        """
-        assert_allclose(self.betas_disp[:, 0, :], self.betas_disp[:, 1, :])
+#    def test_dispersion_same(self):
+#        #"""
+#        #Tests if the dispersion of the first two modes (degenerate) are the same. 
+#        #"""
+#        assert_allclose(self.betas_disp[:, 0, :], self.betas_disp[:, 1, :])
 
 
+def test_betap():
+    c_norm = c*1e-12
+    lamda_c = 1.5508e-6
+    w0 = 1e-12 * 2 * pi * c / lamda_c
+    
+
+    betap1 = load_disp_paramters(w0,lamda_c)
+    assert_allclose(betap1[0,:2], np.array([0,0]))
+
+
+    D = np.array([19.4e6,21.8e6])
+    S = np.array([0.068e15,0.063e15])
+
+    beta2 = -D[:]*(lamda_c**2/(2*pi*c_norm))                                                #[ps**2/m]
+    beta3 = lamda_c**4*S[:]/(4*(pi*c_norm)**2)+lamda_c**3*D[:]/(2*(pi*c_norm)**2)           #[ps**3/m]
+
+
+    assert_allclose(betap1[0,:2], np.array([0,0])) 
+    assert betap1[1,1] == -9.80000000e-02
+    assert_allclose(betap1[:,2:], np.array([beta2, beta3]).T) 
+
+
+    w0 = 1e-12 * 2 * pi * c / 1.5598e-6
+    betap2 = load_disp_paramters(w0,lamda_c = 1.5508e-6)
+
+    assert not(np.allclose(betap1,betap2))

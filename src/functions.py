@@ -144,37 +144,35 @@ def dispersion_operator(betas, int_fwm, sim_wind):
     """
 
     w = sim_wind.w + sim_wind.woffset
-    betap = np.tile(betas, (int_fwm.nm, 1, 1))
 
-    Dop = np.zeros((betas.shape[0], int_fwm.nm, w.shape[0]), dtype=np.complex)
 
-    for i in range(Dop.shape[0]):
-        Dop[i, :, :] -= fftshift(int_fwm.alpha/2, axes=-1)
+    Dop = np.zeros((2, w.shape[0]), dtype=np.complex)
 
-    for i in range(int_fwm.nm-1, -1, -1):
-        betap[i, :, 0] = betap[i, :, 0] - betap[0, :, 0]
-        betap[i, :, 1] = betap[i, :, 1] - betap[0, :, 1]
+    print(fftshift(int_fwm.alpha/2, axes=-1))
 
-    for k, b in enumerate(betap):
-        for l, bb in enumerate(b):
-            for m, bbb in enumerate(bb):
-                Dop[l, k, :] = Dop[l, k, :]-1j*(w**m * bbb / factorial(m))
+
+
+    Dop -= fftshift(int_fwm.alpha/2, axes=-1)
+    print(betas)
+
+
+    Dop[0,:] -= 1j*((betas[0,2]*(w)**2)/2. + (betas[0,3]*(w)**3)/6.)
+    Dop[1,:] -= 1j*(betas[1,0] -  betas[1,1]*(w) + (betas[1,2]*(w)**2)/2. + (betas[1,3]*(w)**3)/6.)
+    
+
+    fig = plt.figure()
+    plt.plot(fftshift(np.imag(Dop[0,:])))
+    plt.savefig('1.png')
+    plt.show()
+    fig = plt.figure()
+    plt.plot(fftshift(np.imag(Dop[1,:])))
+    plt.savefig('2.png')
+    plt.show()
+
     return Dop
 
 
-def load_step_index_params(filename, filepath):
-    with h5py.File(filepath+filename+'.hdf5', 'r') as f:
-        D = {}
-        for i in f.keys():
-            try:
-                D[str(i)] = f.get(str(i)).value
-            except AttributeError:
-                pass
-    a_vec, fv, dnerr,  M1, M2, betas, Q_large, dnerr =\
-        D['a_vec'], D['fv'], D['dnerr'], D['M1'], \
-        D['M2'], D['betas'], D['Q_large'], D['dnerr']
 
-    return a_vec, fv, M1, M2, betas, Q_large, dnerr, D
 
 
 def consolidate_hdf5_steps(master_index_l, size_ins, filepath):
@@ -194,221 +192,10 @@ def consolidate_hdf5_steps(master_index_l, size_ins, filepath):
     return None
 
 
-def find_large_block_data_full(already_done, layer_old, filepath, filename, D_now):
-    """
-    Searches the large block file to see if the data is already cached
-    Returns a bool. 
-    """
-    with h5py.File(filepath+filename+'.hdf5', 'r') as f:
-        for layer_old in f.keys():
-            D = [f.get(layer_old + '/' + str(i)
-                       ).value for i in ('a_vec', 'fv', 'dnerr')]
-            try:
-                already_done = np.array(
-                    [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
-            except ValueError:
-                pass
-            if already_done:
-                print('found in large')
-                break
-    return already_done, layer_old
 
 
-def find_small_block_data_full(already_done, layer_old, filepath, filename, D_now):
-    """
-    Searches the small block files to see if the data is already cached
-    Returns a bool. 
-    """
-
-    files = os.listdir(filepath)
-    if 'step_index_2m.hdf5' in files:
-        files.remove('step_index_2m.hdf5')
-    f = None
-    for file in files:
-        with h5py.File(filepath+file, 'r') as f:
-            D = [f.get(str(i)).value for i in ('a_vec', 'fv', 'dnerr')]
-            try:
-                already_done = np.array(
-                    [np.allclose(D_now[i], D[i]) for i in range(3)]).all()
-            except ValueError:
-                pass
-        if already_done:
-            print('found in small')
-            f = file
-            break
-    return already_done, f
 
 
-def fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
-                           filename, filepath='loading_data/step_data/'):
-    """
-    This function tried to save time in computation of the step index dipsersion. It
-    compares the hdf5 file that was exported from a previous computation if the inputs dont
-    fit then it calls the eigenvalue solvers. It has also been extended to look if previous
-    results within the same computation hold the same results. Tested on parallell.
-    """
-
-    index = str(index)
-    master_index = str(master_index)
-
-    ############################Total step index computation################################
-    if os.listdir(filepath) == []:  # No files in dir, all to be calc
-        print('No files in dir, calculating new radius:', filepath)
-        Export_dict = fibre_creator(a_vec, fv, dnerr, filepath=filepath)[-1]
-        save_variables_step(filename+'_new_'+master_index+'_'+index,
-                            filepath=filepath, **Export_dict)
-        M1, M2, betas, Q_large = Export_dict['M1'], Export_dict['M2'], \
-            np.asanyarray(Export_dict['betas']), Export_dict['Q_large']
-        return M1, M2, betas, Q_large
-    #########################################################################################
-
-    ####################Try and find entire blocks in large or small files###################
-    D_now = [a_vec, fv, dnerr]
-    already_done = False
-    layer_old = False
-
-    try:
-        # Try and find in the consolidated
-        already_done, layer_old =\
-            find_large_block_data_full(
-                already_done, layer_old, filepath, filename, D_now)
-    except OSError:
-        pass
-
-    if not(already_done):
-        # Try and find in the normal ones
-        try:
-            already_done, file = \
-                find_small_block_data_full(
-                    already_done, layer_old, filepath, filename, D_now)
-        except OSError:
-            pass
-    if already_done:
-        # If the entire computation is already done then simply load and save variables
-        if layer_old:
-            D = read_variables(filename, layer_old, filepath=filepath)
-        else:
-            D = load_step_index_params(file[:-5], filepath)[-1]
-
-        if os.path.isfile(filepath+filename+'_new_' +
-                          master_index+'_'+index+'.hdf5'):
-            os.system('rm ' + filepath+filename+'_new_' +
-                      master_index+'_'+index+'.hdf5')
-
-        save_variables_step(filename+'_new_'+master_index +
-                            '_'+index,  filepath=filepath, **D)
-
-        M1, M2, betas, Q_large = D['M1'], D['M2'], D['betas'], D['Q_large']
-        return M1, M2, betas, Q_large
-    ##########################################################################################
-    M1, M2, betas, Q_large = find_small_block_data_small(
-        D_now, filename, filepath, master_index, index)
-    return M1, M2, betas, Q_large
-
-
-def compare_single_data(fv_old, fv, a_vec, dnerr, a_vec_old,
-                        dnerr_old, betas, betas_old, Q_large,
-                        Q_large_old, found):
-    try:
-        if np.allclose(fv_old, fv):
-            for j in range(len(a_vec_old)):
-                i_vec = np.where(np.isclose(a_vec, [a_vec_old[j]]) *
-                                 np.isclose(dnerr, [dnerr_old[j]]))[0]
-                for i in i_vec:
-                    print('found', a_vec_old[j])
-                    Q_large[i] = Q_large_old[j, :, :]
-                    betas[i] = betas_old[j, :]
-                    found[i] = True
-    except ValueError:
-        pass
-    return found, Q_large, betas
-
-
-def find_small_block_data_small(D_now, filename, filepath, master_index, index):
-    """
-    Searches the block files to see if there is any
-    data that has already been calculated prior to launch, calculates what
-    is left. First it tries in the consolidated file and then
-    in the small blocks(the later helps in parallel) Only works for 2 modes!
-    """
-    a_vec, fv, dnerr = D_now
-    files = os.listdir(filepath)
-    if 'step_index_2m.hdf5' in files:
-        files.remove('step_index_2m.hdf5')
-    Q_large = [0 for i in a_vec]
-    betas = [0 for i in a_vec]
-    found = np.zeros(len(a_vec))
-
-    ####################looking in the large block cashes###############
-    try:
-        with h5py.File(filepath+filename+'.hdf5', 'r') as f:
-            for layer_old in f.keys():
-                D = read_variables(filename, layer_old, filepath)
-                a_vec_old, fv_old, M1_old, M2_old, \
-                    betas_old, Q_large_old, dnerr_old = \
-                    D['a_vec'], D['fv'], D['M1'], D['M2'],\
-                    D['betas'], D['Q_large'], D['dnerr']
-
-                found, Q_large, betas = \
-                    compare_single_data(fv_old, fv, a_vec, dnerr, a_vec_old,
-                                        dnerr_old, betas, betas_old, Q_large,
-                                        Q_large_old, found)
-
-                if (found == True).all():
-                    break
-    except OSError:
-        pass
-    ######################################################################
-
-    ####################looking in the small block cashes###############
-    try:
-        for file in files:
-            a_vec_old, fv_old, M1_old, M2_old, betas_old,\
-                Q_large_old, dnerr_old = \
-                load_step_index_params(file[:-5], filepath)[:-1]
-            found, Q_large, betas = \
-                compare_single_data(fv_old, fv, a_vec, dnerr, a_vec_old,
-                                    dnerr_old, betas, betas_old, Q_large,
-                                    Q_large_old, found)
-
-            if (found == True).all():
-                break
-    except OSError:
-        pass
-    ######################################################################
-
-    found = np.array([np.nan if i else 1 for i in found])
-    # What is missing? Fix the array and send it though to calculate them.
-    # dnerr_temp = np.ones_like(dnerr) # Dirty fix because dnerr can be zero
-    a_vec_needed, dnerr_needed = a_vec * found, dnerr * found
-    a_vec_needed, dnerr_needed = a_vec_needed[np.isfinite(a_vec_needed)], \
-        dnerr_needed[np.isfinite(dnerr_needed)]
-
-    if a_vec_needed.any():
-        print('Doing some extra calculations for data not cached')
-        print(a_vec_needed, dnerr_needed)
-        Export_dict = fibre_creator(
-            a_vec_needed, fv, dnerr_needed, filepath=filepath)[-1]
-        M1, M2, betas_new, Q_large_new = Export_dict['M1'], Export_dict['M2'], \
-            np.asanyarray(Export_dict['betas']), Export_dict['Q_large']
-        count = 0
-        for i in range(len(a_vec)):
-            if np.isfinite(found[i]):
-
-                Q_large[i] = Q_large_new[count, :, :]
-                betas[i] = betas_new[count, :]
-                count += 1
-    else:
-        M1, M2 = M1_old, M2_old
-    Q_large = np.asanyarray(Q_large)
-    betas = np.asanyarray(betas)
-
-    Export_dict = {'M1': M1, 'M2': M2,
-                   'Q_large': Q_large, 'betas': betas,
-                   'a_vec': a_vec, 'fv': fv, 'dnerr': dnerr}
-    save_variables_step(filename+'_new_'+master_index+'_'+index,
-                        filepath=filepath, **Export_dict)
-    return M1, M2, betas, Q_large
 
 
 class sim_parameters(object):
@@ -658,6 +445,7 @@ class WDM(object):
             plt.show()
         plt.close(fig)
         return None
+
 
 
 def create_file_structure(kk=''):
@@ -931,3 +719,48 @@ class birfeg_variation(object):
         except IndexError:
             pass
         return u
+
+def dbeta00(lc, filepath='loading_data'):
+
+    n = 1.444
+    #print(os.path.join('loading_data', 'widths.dat'))
+    w0,w1 = np.loadtxt(os.path.join('loading_data', 'widths.dat'))[:2]
+    beta0 = (2*pi*n/lc)*((1-lc**2/(pi**2 * n* w0**2))**0.5 - (1-2*lc**2/(pi**2 * n * w0**2))**0.5)
+    beta1 = (2*pi*n/lc)*((1-lc**2/(pi**2 * n* w1**2))**0.5 - (1-2*lc**2/(pi**2 * n * w1**2))**0.5)
+    return beta1 - beta0
+
+def load_disp_paramters(w0,lamda_c = 1.5508e-6):
+    """
+    Returns the betas (taylor expansion coefficients) of the Telecom fibre.
+    """
+    c_norm = c*1e-12
+    betap = np.zeros([2,4])
+    dbeta0 = dbeta00(lamda_c)
+
+
+    D = np.array([19.4e6,21.8e6])
+    S = np.array([0.068e15,0.063e15])
+    dbeta1 = -98e-3
+
+
+    beta2 = -D[:]*(lamda_c**2/(2*pi*c_norm))                                                #[ps**2/m]
+    beta3 = lamda_c**4*S[:]/(4*(pi*c_norm)**2)+lamda_c**3*D[:]/(2*(pi*c_norm)**2)           #[ps**3/m]
+
+    wc = 2* pi * c_norm / lamda_c
+
+
+    dbeta1 += (beta2[0] - beta2[1]) * (w0 - wc) + (beta3[0] - beta3[1]) * (w0 - wc)**2
+
+    for i in range(2):
+        beta2[i] += beta3[i] * (w0 - wc)
+    
+
+
+    betap[0,2] = beta2[0]
+    betap[0,3] = beta3[0]
+
+    betap[1,0] = dbeta0
+    betap[1,1] = dbeta1
+    betap[1,2] = beta2[1]
+    betap[1,3] = beta3[1]
+    return betap
