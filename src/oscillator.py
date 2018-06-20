@@ -12,29 +12,40 @@ os.system('export FONTCONFIG_PATH=/etc/fonts')
 from functions import *
 from time import time, sleep
 from overlaps import fibre_overlaps_loader
+
+
+
 @profile
-def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
-             master_index, P0_p1, P0_s, f_p, f_s, p_pos, s_pos,
-             splicers_vec, WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic,
-             pulse_pos_dict_or, plots, mode_names, ex, Dtheta, fopa):
+def oscilate(sim_wind, int_fwm, noise_obj, index,
+             master_index,
+             splicers_vec, WDM_vec, M1, M2, Q_large, hf, Dop, dAdzmm, D_pic,
+             pulse_pos_dict_or, plots, mode_names, ex, fopa, D_param):
 
     u = np.empty(
         [int_fwm.nm, len(sim_wind.t)], dtype='complex128')
     U = np.empty([int_fwm.nm,
                   len(sim_wind.t)], dtype='complex128')
+    p1_pos = D_param['where'][1]
+    p2_pos = D_param['where'][4]
+    s_pos = D_param['where'][2]
 
-    T0_p = TFWHM_p/2/(np.log(2))**0.5
-    T0_s = TFWHM_s/2/(np.log(2))**0.5
-
-    
+    print(p1_pos, p2_pos, s_pos)
+    print(D_param['fp1'], D_param['fp2'], D_param['fs'])
     noise_new_or = noise_obj.noise_func_freq(int_fwm, sim_wind)
     u[:, :] = noise_obj.noise
 
-    woff1 = (p_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
-    u[0, :] += (P0_p1)**0.5 * np.exp(1j*(woff1)*sim_wind.t)
+    woff1 = (p1_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
+    u[0, :] += (D_param['P_p1'])**0.5 * np.exp(1j*(woff1)*sim_wind.t)
+
+
 
     woff2 = (s_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
-    u[0, :] += (P0_s)**0.5 * np.exp(1j*(woff2) *
+    u[0, :] += (D_param['P_s'])**0.5 * np.exp(1j*(woff2) *
+                                           sim_wind.t)
+
+
+    woff3 = (p2_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
+    u[1, :] += (D_param['P_p2'])**0.5 * np.exp(1j*(woff3) *
                                            sim_wind.t)
 
     U[:, :] = fftshift(fft(u[:, :]), axes = -1)
@@ -42,8 +53,9 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
     sim_wind.w_tiled = np.tile(sim_wind.w + sim_wind.woffset, (int_fwm.nm, 1))
     master_index = str(master_index)
 
-    ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
-                P0_s, f_p, f_s, 0, 0,  mode_names, master_index, '00', 'original pump', D_pic[0], plots)
+    ex.exporter(index, int_fwm, sim_wind, u, U, D_param,
+                 0, 0,  mode_names, master_index,
+                 '00', 'original pump', D_pic[0], plots)
 
 
     U_original_pump = np.copy(U[:, :])
@@ -72,19 +84,14 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
         pulse_pos_dict = [
             'round ' + str(ro)+', ' + i for i in pulse_pos_dict_or]
 
-        ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
-                    P0_s, f_p, f_s, 0, ro,  mode_names, master_index,
+        ex.exporter(index, int_fwm, sim_wind, u, U, D_param, 0, ro,  mode_names, master_index,
                     str(ro)+'1', pulse_pos_dict[3], D_pic[5], plots)
 
-        for index_woble in range(len(int_fwm.Dz_vec)):
-            Q , Dop = Q_large[index_woble], Dop_large[index_woble]
-            int_fwm.woble_propagate(index_woble)                   
-            u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q,
+        
+        u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q_large,
                                      sim_wind, hf, Dop, dAdzmm,gam_no_aeff)
-            u = Dtheta.bire_pass(u,index_woble)
-
-        ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
-                    P0_s, f_p, f_s, -1, ro, mode_names, master_index,
+    
+        ex.exporter(index, int_fwm, sim_wind, u, U, D_param, -1, ro, mode_names, master_index,
                     str(ro)+'2', pulse_pos_dict[0], D_pic[2], plots)
 
         # pass through WDM2 port 2 continues and port 1 is out of the loop
@@ -92,8 +99,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
         (out1, out2), (u[:, :], U[:, :]) = WDM_vec[1].pass_through(
             (U[:, :], noise_new), sim_wind)
 
-        ex.exporter(index, int_fwm, sim_wind, u, U, P0_p1,
-                    P0_s, f_p, f_s, -1, ro,  mode_names, master_index,
+        ex.exporter(index, int_fwm, sim_wind, u, U, D_param, -1, ro,  mode_names, master_index,
                     str(ro)+'3', pulse_pos_dict[1], D_pic[3], plots)
 
         # Splice7 after WDM2 for the signal
@@ -107,8 +113,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index,
             (U_original_pump, U[:, :]), sim_wind)[0]
 
         ################################The outbound stuff#####################
-        ex.exporter(index, int_fwm, sim_wind, out1, out2, P0_p1,
-                    P0_s, f_p, f_s, -
+        ex.exporter(index, int_fwm, sim_wind, out1, out2, D_param, -
                     1, ro,  mode_names, master_index, str(ro)+'4',
                     pulse_pos_dict[4], D_pic[6], plots)
     return None
@@ -133,29 +138,19 @@ def calc_P_out(U, U_original_pump, fv, t):
 
 
 @unpack_args
-def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
-              lamda_c, WDMS_pars, lamp, lams, num_cores, maxerr, ss, ram, plots,
-              N, nt, nplot, master_index, nm, mode_names, pertb_vec, fopa, Deltaf):
-    a_vec,dnerr,Dtheta, z_vec  = pertb_vec
+def formulate(index, n2, gama, alphadB, P_p1, P_p2, P_s, spl_losses,
+              lamda_c, WDMS_pars, lamp1, lamp2, lams, num_cores, maxerr, ss, ram, plots,
+              N, nt, master_index, nm, mode_names, fopa,z):
     ex = Plotter_saver(plots, True)  # construct exporter
     "------------------propagation paramaters------------------"
     dz_less = 2
-    Num_a = len(a_vec)
     int_fwm = sim_parameters(n2, nm, alphadB)
     int_fwm.general_options(maxerr, raman_object, ss, ram)
-    int_fwm.propagation_parameters(N, z_vec, nplot, dz_less,Num_a)
-    lamda = lamp*1e-9  # central wavelength of the grid[m]
-    fv_idler_int = 10  # safety for the idler to be spotted used only for idler power
-    "-----------------------------f-----------------------------"
-    Dtheta = birfeg_variation(Dtheta)
+    int_fwm.propagation_parameters(N, z, dz_less)
+    lamda = 1.5508e-6  # central wavelength of the grid[m]
     "---------------------Grid&window-----------------------"
-    print(lamp, lams,P_s)
-    fv, where = fv_creator(lamp,lams,P_s, Deltaf, int_fwm)
-    p_pos, s_pos = where
-    print(p_pos, s_pos)
-    sim_wind = sim_window(fv, lamda, lamda_c, int_fwm, fv_idler_int)
-    
-
+    fv, D_freq = fv_creator(lamp1,lamp2, lams, int_fwm)
+    sim_wind = sim_window(fv, lamda, lamda_c, int_fwm)
     "----------------------------------------------------------"
 
     "---------------------Aeff-Qmatrixes-----------------------"
@@ -177,7 +172,7 @@ def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
     "--------------------Dispersion----------------------------"
     Dop_large = dispersion_operator(betas, int_fwm, sim_wind)
     "----------------------------------------------------------"
-    sys.exit()
+
     "--------------------Noise---------------------------------"
     noise_obj = Noise(int_fwm, sim_wind)
     a = noise_obj.noise_func_freq(int_fwm, sim_wind)
@@ -220,10 +215,12 @@ def formulate(index, n2, gama, alphadB, P_p, P_s, TFWHM_p, TFWHM_s, spl_losses,
     splicers_vec = [Splicer(fopa = fopa,loss=i) for i in spl_losses]
     "------------------------------------------------------------"
 
-    f_p, f_s = 1e-3*c/lamp, 1e-3*c/lams
+    D_param = {**D_freq, **{'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s}} 
 
-    oscilate(sim_wind, int_fwm, noise_obj, TFWHM_p, TFWHM_s, index, master_index, P_p, P_s, f_p, f_s, p_pos, s_pos, splicers_vec,
-             WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic, pulse_pos_dict_or, plots, mode_names, ex, Dtheta, fopa)
+
+    oscilate(sim_wind, int_fwm, noise_obj, index, master_index, splicers_vec,
+             WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic,
+             pulse_pos_dict_or, plots, mode_names, ex, fopa,D_param )
     return None
 
 
@@ -236,17 +233,18 @@ def main():
     ss = 1                                  # includes self steepening term
     ram = 'on'                              # Raman contribution 'on' if yes and 'off' if no
     if arguments_determine(-1) == 0:
-        fopa = True                         # If FOPA true or if FOPO then false
+        fopa = True                         # If no oscillations then the WDMs are deleted to 
+                                            # make the system in to a FOPA
     else:
         fopa = False
     plots = True                            # Do you want plots, be carefull it makes the code very slow!
-    N = 12                                  # 2**N grid points
+    N = 7                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
     # Number of modes (include degenerate polarisation)
     
     nm = 2
-    mode_names = ['LP01a', 'LP01b']         # Names of modes for plotting
+    mode_names = ['LP01', 'LP11b']         # Names of modes for plotting
     if 'mpi' in sys.argv:
         method = 'mpi'
     elif 'joblib' in sys.argv:
@@ -255,66 +253,34 @@ def main():
         method = 'single'
     "--------------------------------------------------------------------------"
     stable_dic = {'num_cores': num_cores, 'maxerr': maxerr, 'ss': ss, 'ram': ram, 'plots': plots,
-                  'N': N, 'nt': nt, 'nplot': nplot, 'nm': nm, 'mode_names': mode_names, 'fopa':fopa}
+                  'N': N, 'nt': nt, 'nm': nm, 'mode_names': mode_names, 'fopa':fopa}
     "------------------------Can be variable parameters------------------------"
     n2 = 2.5e-20                            # Nonlinear index [m/W]
     gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
     z = 1000                                 # Length of the fibre
-    P_p = [10]
+    P_p1 = 1
+    P_p2 = 1
     P_s = 100e-3
-    TFWHM_p = 0                             # full with half max of pump
-    TFWHM_s = 0                             # full with half max of signal
-    spl_losses = [[0, 0, 1.], [0, 0, 1.2], [0, 0, 1.3], [
-        0, 0, 1.4]]                 # loss of each type of splices [dB]
     spl_losses = [0, 0, 1.4]
-    loada_vec = True
-    a_med = 2.19e-6
-    a_err = 0.008 #[125um +- 1um ]
-    dnerr_med = 0.0002
-    cutting = 100
-    Num_a = 1000
-    if loada_vec and os.path.isfile('loading_data/a_vec.hdf5'):   
-        D = read_variables('a_vec', '0', filepath='loading_data/')
-        a_vec = D['a_vec']
-        dnerr = D['dnerr']
-        Dtheta = D['Dtheta']
-    else:
-        a_vec = np.random.normal(a_med,a_err * a_med, Num_a )
-        dnerr = np.random.normal(0, dnerr_med, len(a_vec))
-        Dtheta = np.random.normal(0, pi, len(a_vec))
-        D = {'a_vec':a_vec, 'dnerr':dnerr, 'Dtheta':Dtheta}
-        os.system('rm loading_data/a_vec.hdf5')
-        save_variables('a_vec', '0', filepath='loading_data/', **D)
-
-    z_vec = np.linspace(0, z, len(a_vec)+1)
-    pertb_vec = [[a_vec,dnerr,Dtheta, z_vec]] # pertubation vector for dn and a_vec
-    
-
-    if cutting < len(a_vec):
-        pertb_vec += [[j[:-(cutting*i)] for j in (a_vec, dnerr, Dtheta, z_vec)]\
-                       for i in range(1,int(len(a_vec)/cutting))]
 
 
-
-    lamda_c = 1051.85e-9
+    lamda_c = 1.5508e-6
     WDMS_pars = ([1050., 1392.85],
                  [1747.585,  1392.85])  # WDM up downs in wavelengths [m]
-
-    Deltaf = 32
     
-    lamp = 1550
-    lams = 1392.85
-    var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB, 'P_p': P_p,
-               'P_s': P_s, 'TFWHM_p': TFWHM_p, 'TFWHM_s': TFWHM_s,
+    lamp1 = 1549
+    lamp2 = [1555]
+    lams = [1551.85]
+    var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB,
+               'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,
                'spl_losses': spl_losses,
                'lamda_c': lamda_c, 'WDMS_pars': WDMS_pars,
-               'lamp': lamp, 'lams': lams,
-               'pertb_vec':pertb_vec, 'Deltaf':Deltaf}
+               'lamp1': lamp1,'lamp2': lamp2, 'lams': lams, 'z':z}
 
     "--------------------------------------------------------------------------"
-    outside_var_key = 'P_p'
-    inside_var_key = 'pertb_vec'
+    outside_var_key = 'lamp2'
+    inside_var_key = 'lams'
     inside_var = var_dic[inside_var_key]
     outside_var = var_dic[outside_var_key]
     del var_dic[outside_var_key]

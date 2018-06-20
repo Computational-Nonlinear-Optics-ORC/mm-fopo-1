@@ -135,33 +135,6 @@ class raman_object(object):
             return self.hf
 
 
-def dispersion_operator(betas, int_fwm, sim_wind):
-    """
-    Calculates the dispersion operator in rad/m units
-    Inputed are the dispersion operators at the omega0
-    Local include the taylor expansion to get these opeators at omegac 
-    Returns Dispersion operator
-    """
-
-    w = sim_wind.w + sim_wind.woffset
-
-
-    Dop = np.zeros((2, w.shape[0]), dtype=np.complex)
-
-    print(fftshift(int_fwm.alpha/2, axes=-1))
-
-
-
-    Dop -= fftshift(int_fwm.alpha/2, axes=-1)
-
-    Dop[0,:] -= 1j*((betas[0,2]*(w)**2)/2. + (betas[0,3]*(w)**3)/6.)
-    Dop[1,:] -= 1j*(betas[1,0] -  betas[1,1]*(w) + (betas[1,2]*(w)**2)/2. + (betas[1,3]*(w)**3)/6.)
-    return Dop
-
-
-
-
-
 def consolidate_hdf5_steps(master_index_l, size_ins, filepath):
     """
     Puts all exported HDF5 files created to one and saves it for future 
@@ -179,12 +152,6 @@ def consolidate_hdf5_steps(master_index_l, size_ins, filepath):
     return None
 
 
-
-
-
-
-
-
 class sim_parameters(object):
 
     def __init__(self, n2, nm, alphadB):
@@ -200,7 +167,7 @@ class sim_parameters(object):
             self.alphadB = np.empty(nm)
             self.alphadB = np.tile(alphadB, (nm))
         elif self.nm < len(self.alphadB):
-            print('To many losses for modes, apending!')
+            print('To many losses for modes, appending!')
             for i in range(nm):
                 self.alphadB[i] = alphadB[i]
         else:
@@ -214,26 +181,17 @@ class sim_parameters(object):
         self.how = how
         return None
 
-    def propagation_parameters(self, N, z_vec, nplot, dz_less, Num_a):
+    def propagation_parameters(self, N, z, dz_less):
         self.N = N
         self.nt = 2**self.N
-        self.nplot = nplot
-        self.tot_z = np.max(z_vec)
-        self.z_vec = z_vec
-        self.Dz_vec = np.array([self.z_vec[i + 1] - self.z_vec[i]
-                                for i in range(len(self.z_vec)-1)])
-        self.dzstep_vec = self.Dz_vec
-        self.dz = np.min([self.dzstep_vec[0]/2, 1])
-        return None
-
-    def woble_propagate(self, i):
-        self.dzstep = self.dzstep_vec[i]
+        self.z = z
+        self.dz = self.z/dz_less
         return None
 
 
 class sim_window(object):
 
-    def __init__(self, fv, lamda, lamda_c, int_fwm, fv_idler_int):
+    def __init__(self, fv, lamda, lamda_c, int_fwm):
         self.fv = fv
         self.lamda = lamda
         self.fmed = 0.5*(fv[-1] + fv[0])*1e12  # [Hz]
@@ -251,11 +209,6 @@ class sim_window(object):
             range(int(-int_fwm.nt/2), 0, 1))/self.T
 
         self.lv = 1e-3*c/self.fv
-
-        self.fv_idler_int = fv_idler_int
-        self.fv_idler_tuple = (
-            self.fmed*1e-12 - fv_idler_int, self.fmed*1e-12 + fv_idler_int)
-
 
 class Loss(object):
 
@@ -434,7 +387,6 @@ class WDM(object):
         return None
 
 
-
 def create_file_structure(kk=''):
     """
     Is set to create and destroy the filestructure needed 
@@ -484,10 +436,11 @@ class Splicer(WDM):
 class Maintain_noise_floor(object):
 
     def pass_through(u, noisef):
-        U = fftshift(fft(u), axis = -1)
-        U  = U +  U - noise_f
-        u = ifft(fftshift(U, axis = -1))
-        return u 
+        U = fftshift(fft(u), axis=-1)
+        U = U + U - noise_f
+        u = ifft(fftshift(U, axis=-1))
+        return u
+
 
 def norm_const(u, sim_wind):
     t = sim_wind.t
@@ -523,7 +476,7 @@ class Noise(object):
 
 @profile
 def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
-                     Dop, dAdzmm, gam_no_aeff):
+                      Dop, dAdzmm, gam_no_aeff):
     """Pulse propagation part of the code. We use the split-step fourier method
        with a modified step using the RK45 algorithm. 
     """
@@ -537,7 +490,6 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
         delta = 2*int_fwm.maxerr
         while delta > int_fwm.maxerr:
             u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
-            #print('dz {}'.format(dz))
             A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, sim_wind.tsh,
                               sim_wind.dt, hf, sim_wind.w_tiled, gam_no_aeff)
             if (delta > int_fwm.maxerr):
@@ -548,23 +500,20 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
         u1 = ifft(np.exp(Dop*dz/2)*fft(A))
         dztot += dz
         # update the propagated distance
-
-        
-
         if delta == 0:
-            dz = Safety*int_fwm.dzstep
+            dz = Safety*int_fwm.z
         else:
             try:
                 dz = np.min(
                     [Safety*dz*(int_fwm.maxerr/delta)**0.2,
-                     Safety*int_fwm.dzstep])
+                     Safety*int_fwm.z])
             except RuntimeWarning:
-                dz = Safety*int_fwm.dzstep
+                dz = Safety*int_fwm.z
         ###################################################################
 
-        if dztot == (int_fwm.dzstep):
+        if dztot == (int_fwm.z):
             exitt = True
-        elif ((dztot + dz) >= int_fwm.dzstep):
+        elif ((dztot + dz) >= int_fwm.z):
             dz = int_fwm.dzstep - dztot
         ###################################################################
     u = u1
@@ -573,45 +522,57 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
     return u, U
 
 
-def dbm_nm(U, sim_wind, int_fwm):
-    """
-    Converts The units of freequency to units of dBm/nm
-    """
-    U_out = U / sim_wind.T**2
-    U_out = -1*w2dbm(U_out)
-    dlv = [sim_wind.lv[i+1] - sim_wind.lv[i]
-           for i in range(len(sim_wind.lv) - 1)]
-    dlv = np.asanyarray(dlv)
-    for i in range(int_fwm.nm):
-        U_out[:, i] /= dlv[i]
-    return U_out
-
-
-def fv_creator(lam_p1, lams, P_s, Deltaf, int_fwm):
+def fv_creator(lamp1,lamp2, lams, int_fwm):
     """
     Creates the freequency grid of the simmualtion and returns it.. 
     """
-    fp = 1e-3*c / lam_p1
-    fs = 1e-3*c / lams
-    fv1 = np.linspace(fp - Deltaf, fp, int_fwm.nt//2)
-    df = fv1[1] - fv1[0]
-    fv2 = [fp+df]
-    for i in range(1, int_fwm.nt//2):
-        fv2.append(fv2[i - 1]+df)
-    fv2 = np.array(fv2)
-    fv = np.concatenate((fv1, fv2))
-    p_pos = np.where(fv == fp)[0][0]
-    where = [p_pos]
-    if P_s != 0:
+    fp1, fp2,fs = [1e-3 * c /i for i in (lamp1, lamp2, lams)]
+    
+    fv1 = np.linspace(fp2, fp1, int_fwm.nt//2)
 
-        s_pos = np.argmin(np.abs(fv - fs))
+    df = abs(fv1[1] - fv1[0])
 
-        where.append(s_pos)
+    fv0 = [fv1[0] - df]
+    fv2 = [fv1[-1] + df]
+    
+    for i in range(1,int_fwm.nt//4 ):
+        fv0.append(fv0[i - 1] - df)
+        fv2.append(fv2[i - 1] + df)
 
-    else:
-        where.append(0)
+    fv0 = fv0[::-1]
+        
+    fv = np.concatenate((fv0, fv1, fv2))
     check_ft_grid(fv, df)
-    return fv, where
+
+    D_freq = assemble_parameters(fv,fp1, fp2,fs)
+
+
+    return fv, D_freq
+
+def assemble_parameters(fv,fp1, fp2,fs):
+    """
+    Assembles frequency dictionary
+    which holds frequency indexes and values
+    of input and expected output.
+    """
+    F = fs - fp1
+
+    fmi = fp1 - F
+
+    fpc = fp2 - F
+    fbs = fp2 + F
+
+    fmin = fv.min()
+    fmax = fv.max()
+    try:
+        assert np.all( [ i < fmax and i >fmin for i in (fpc, fbs, fmi)])
+    except AssertionError:
+        sys.exit('Your grid is too small and you end up with waves off the window.')
+
+    where = [np.argmin(np.abs(fv - i)) for i in (fmi, fp1, fs, fpc, fp2, fbs)]
+
+    D_freq = {'fmi':fmi, 'fp1':fp1, 'fs':fs, 'fpc':fpc, 'fp2':fp2, 'fbs': fbs, 'where':where}
+    return D_freq
 
 
 def energy_conservation(entot):
@@ -643,6 +604,7 @@ def check_ft_grid(fv, diff):
     if not(np.allclose(grid_error, 0, rtol=0, atol=1e-12)):
         print(np.max(grid_error))
         sys.exit("your grid is not uniform")
+    assert len(np.unique(fv)) == len(fv)
     return 0
 
 
@@ -669,85 +631,67 @@ class create_destroy(object):
         return None
 
 
-def power_idler(spec, fv, sim_wind, fv_id):
-    """
-    Set to calculate the power of the idler. The possitions
-    at what you call an idler are given in fv_id
-    spec: the spectrum in freequency domain
-    fv: the freequency vector
-    T: time window
-    fv_id: tuple of the starting and
-    ending index at which the idler is calculated
-    """
-    E_out = simps((sim_wind.t[1] - sim_wind.t[0])**2 *
-                  np.abs(spec[fv_id[0]:fv_id[1], 0])**2, fv[fv_id[0]:fv_id[1]])
-    P_bef = E_out/(2*np.max(sim_wind.t))
-    return P_bef
-
-
-class birfeg_variation(object):
-
-    def __init__(self, Da):
-        self._P_mat(Da)
-        return None
-
-    def _P_mat(self, Da):
-        self.P = np.array([[np.cos(Da), 1j * np.sin(Da)],
-                           [1j * np.sin(Da), np.cos(Da)]])
-        return None
-
-    def bire_pass(self, u, i):
-        u1_temp, u2_temp = u[0, :]*1, u[1, :]*1
-        try:
-            u[0, :] = self.P[0, 0][i] * u1_temp + \
-                self.P[0, 1][i] * u2_temp
-            u[1, :] = self.P[1, 0][i] * u1_temp + \
-                self.P[1, 1][i] * u2_temp
-        except IndexError:
-            pass
-        return u
-
 def dbeta00(lc, filepath='loading_data'):
 
     n = 1.444
     #print(os.path.join('loading_data', 'widths.dat'))
-    w0,w1 = np.loadtxt(os.path.join('loading_data', 'widths.dat'))[:2]
-    beta0 = (2*pi*n/lc)*((1-lc**2/(pi**2 * n* w0**2))**0.5 - (1-2*lc**2/(pi**2 * n * w0**2))**0.5)
-    beta1 = (2*pi*n/lc)*((1-lc**2/(pi**2 * n* w1**2))**0.5 - (1-2*lc**2/(pi**2 * n * w1**2))**0.5)
+    w0, w1 = np.loadtxt(os.path.join('loading_data', 'widths.dat'))[:2]
+    beta0 = (2*pi*n/lc)*((1-lc**2/(pi**2 * n * w0**2)) **
+                         0.5 - (1-2*lc**2/(pi**2 * n * w0**2))**0.5)
+    beta1 = (2*pi*n/lc)*((1-lc**2/(pi**2 * n * w1**2)) **
+                         0.5 - (1-2*lc**2/(pi**2 * n * w1**2))**0.5)
     return beta1 - beta0
 
-def load_disp_paramters(w0,lamda_c = 1.5508e-6):
+
+def load_disp_paramters(w0, lamda_c=1.5508e-6):
     """
     Returns the betas (taylor expansion coefficients) of the Telecom fibre.
     """
     c_norm = c*1e-12
-    betap = np.zeros([2,4])
+    betap = np.zeros([2, 4])
     dbeta0 = dbeta00(lamda_c)
 
-
-    D = np.array([19.4e6,21.8e6])
-    S = np.array([0.068e15,0.063e15])
+    D = np.array([19.4e6, 21.8e6])
+    S = np.array([0.068e15, 0.063e15])
     dbeta1 = -98e-3
 
+    beta2 = -D[:]*(lamda_c**2/(2*pi*c_norm))  # [ps**2/m]
+    beta3 = lamda_c**4*S[:]/(4*(pi*c_norm)**2) + \
+        lamda_c**3*D[:]/(2*(pi*c_norm)**2)  # [ps**3/m]
 
-    beta2 = -D[:]*(lamda_c**2/(2*pi*c_norm))                                                #[ps**2/m]
-    beta3 = lamda_c**4*S[:]/(4*(pi*c_norm)**2)+lamda_c**3*D[:]/(2*(pi*c_norm)**2)           #[ps**3/m]
+    wc = 2 * pi * c_norm / lamda_c
 
-    wc = 2* pi * c_norm / lamda_c
-
-
-    dbeta1 += (beta2[0] - beta2[1]) * (w0 - wc) + (beta3[0] - beta3[1]) * (w0 - wc)**2
+    dbeta1 += (beta2[0] - beta2[1]) * (w0 - wc) + \
+        (beta3[0] - beta3[1]) * (w0 - wc)**2
 
     for i in range(2):
         beta2[i] += beta3[i] * (w0 - wc)
-    
 
+    betap[0, 2] = beta2[0]
+    betap[0, 3] = beta3[0]
 
-    betap[0,2] = beta2[0]
-    betap[0,3] = beta3[0]
-
-    betap[1,0] = dbeta0
-    betap[1,1] = dbeta1
-    betap[1,2] = beta2[1]
-    betap[1,3] = beta3[1]
+    betap[1, 0] = dbeta0
+    betap[1, 1] = dbeta1
+    betap[1, 2] = beta2[1]
+    betap[1, 3] = beta3[1]
     return betap
+
+
+def dispersion_operator(betas, int_fwm, sim_wind):
+    """
+    Calculates the dispersion operator in rad/m units
+    Inputed are the dispersion operators at the omega0
+    Local include the taylor expansion to get these opeators at omegac 
+    Returns Dispersion operator
+    """
+
+    w = sim_wind.w + sim_wind.woffset
+
+    Dop = np.zeros((2, w.shape[0]), dtype=np.complex)
+
+    Dop -= fftshift(int_fwm.alpha/2, axes=-1)
+
+    Dop[0, :] -= 1j*((betas[0, 2]*(w)**2)/2. + (betas[0, 3]*(w)**3)/6.)
+    Dop[1, :] -= 1j*(betas[1, 0] - betas[1, 1]*(w) +
+                     (betas[1, 2]*(w)**2)/2. + (betas[1, 3]*(w)**3)/6.)
+    return Dop

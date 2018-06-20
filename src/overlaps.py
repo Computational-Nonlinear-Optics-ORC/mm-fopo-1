@@ -80,10 +80,10 @@ def main():
     M1_load = mat['M1']
     M2_load = mat['M2']
 
-    M2 = np.uint8(M2_load - 1)
-    M1 = np.empty([5, 8], dtype=np.int)
-    M1[0:4, :] = np.uint8(np.real(M1_load[0:4, :] - 1))
-    M1[4, :] = np.uint8(np.real(M1_load[-1, :] - 1))
+    M2 = np.uint32(M2_load - 1)
+    M1 = np.empty([5, 8], dtype=np.uint32)
+    M1[0:4, :] = np.int32(np.real(M1_load[0:4, :] - 1))
+    M1[4, :] = np.int32(np.real(M1_load[-1, :] - 1))
     D = {'M1': M1, 'M2': M2, 'Q': Q_matrix}
     save_variables('loading_data/M1_M2_new_2m', **D)
     return M1, M2, Q_matrix

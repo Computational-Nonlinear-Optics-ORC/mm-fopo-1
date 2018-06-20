@@ -8,7 +8,7 @@ cdef double fr = 0.18
 cdef double kr = 1 - fr
 
 cpdef complex128_t[:, ::1] dAdzmm_ron_s1_cython(complex128_t[:, ::1] u0, complex128_t[:, ::1] u0_conj,
-                                                              np.ndarray[long, ndim=2] M1, np.ndarray[long, ndim = 2] M2, complex128_t[:, ::1] Q,
+                                                              np.ndarray[unsigned int, ndim=2] M1, np.ndarray[unsigned int, ndim = 2] M2, double[:, ::1] Q,
                                                               double tsh, double dt, complex128_t[:, ::1] hf,
                                                               double[:, ::1] w_tiled, complex128_t gam_no_aeff):
     cdef int shape1 = u0.shape[0]
@@ -59,10 +59,10 @@ cpdef complex128_t[:, ::1] dAdzmm_ron_s1_cython(complex128_t[:, ::1] u0, complex
     return N
 
 
-cpdef complex128_t[:, ::1] dAdzmm_ron_s0_cython(complex128_t[:, ::1] u0, const complex128_t[:, ::1] u0_conj,
-                                                             np.ndarray[long, ndim= 2] M1, np.ndarray[long, ndim = 2] M2, complex128_t[:, ::1] Q,
-                                                             double tsh, double dt, complex128_t[:, ::1] hf,
-                                                             double[:, ::1] w_tiled, complex128_t gam_no_aeff):
+cpdef complex128_t[:, ::1] dAdzmm_ron_s0_cython(complex128_t[:, ::1] u0, complex128_t[:, ::1] u0_conj,
+                                                              np.ndarray[unsigned int, ndim=2] M1, np.ndarray[unsigned int, ndim = 2] M2, double[:, ::1] Q,
+                                                              double tsh, double dt, complex128_t[:, ::1] hf,
+                                                              double[:, ::1] w_tiled, complex128_t gam_no_aeff):
     cdef int shape1 = u0.shape[0]
     cdef long shape2 = u0.shape[1]
     cdef int shapeM2 = M2.shape[1]
@@ -100,7 +100,7 @@ cpdef complex128_t[:, ::1] dAdzmm_ron_s0_cython(complex128_t[:, ::1] u0, const c
     return np.asarray(N)
 
 cpdef complex128_t[:, ::1] dAdzmm_roff_s0_cython(complex128_t[:, ::1] u0, complex128_t[:, ::1] u0_conj,
-                                                              np.ndarray[long, ndim= 2] M1, np.ndarray[long, ndim = 2] M2, complex128_t[:, ::1] Q,
+                                                              np.ndarray[unsigned int, ndim=2] M1, np.ndarray[unsigned int, ndim = 2] M2, double[:, ::1] Q,
                                                               double tsh, double dt, complex128_t[:, ::1] hf,
                                                               double[:, ::1] w_tiled, complex128_t gam_no_aeff):
     cdef int shape1 = u0.shape[0]
@@ -131,11 +131,10 @@ cpdef complex128_t[:, ::1] dAdzmm_roff_s0_cython(complex128_t[:, ::1] u0, comple
     return N
 
 
-cpdef complex128_t[:, ::1] dAdzmm_roff_s1_cython(const complex128_t[:, ::1] u0, const complex128_t[:, ::1] u0_conj,
-                                                              np.ndarray[long, ndim= 2] M1, np.ndarray[long, ndim = 2] M2, const complex128_t[:, ::1] Q,
-                                                              const double tsh, double dt, const complex128_t[:, ::1] hf,
-                                                              const double[:, ::1] w_tiled, const complex128_t gam_no_aeff):
-    cdef int shape1 = u0.shape[0]
+cpdef complex128_t[:, ::1] dAdzmm_roff_s1_cython(complex128_t[:, ::1] u0, complex128_t[:, ::1] u0_conj,
+                                                              np.ndarray[unsigned int, ndim=2] M1, np.ndarray[unsigned int, ndim = 2] M2, double[:, ::1] Q,
+                                                              double tsh, double dt, complex128_t[:, ::1] hf,
+                                                              double[:, ::1] w_tiled, complex128_t gam_no_aeff):    cdef int shape1 = u0.shape[0]
     cdef int shape2 = u0.shape[1]
     cdef int shapeM2 = M2.shape[1]
     cdef int shapeM1 = M1.shape[1]

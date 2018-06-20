@@ -46,40 +46,36 @@ class Plotter_saver(object):
     				  wasted calculation")
         return None
 
-    def plotter_saver_both(self, index, int_fwm, sim_wind, u, U, P0_p, P0_s,
-                           f_p, f_s, which, ro, mode_names, pump_wave='',
+    def plotter_saver_both(self, index, int_fwm, sim_wind, u, U, D_param, which, ro, mode_names, pump_wave='',
                            filename=None, title=None, im=0, plots=True):
-        self.plotter(index, int_fwm, sim_wind, u, U, P0_p, P0_s,
-                     f_p, f_s, which, ro, mode_names, pump_wave,
+        self.plotter(index, int_fwm, sim_wind, u, U, D_param,
+                     which, ro, mode_names, pump_wave,
                      filename, title, im, plots)
-        self.saver(index, int_fwm, sim_wind, u, U, P0_p, P0_s, f_p, f_s,
+        self.saver(index, int_fwm, sim_wind, u, U, D_param,
                    which, ro, mode_names, pump_wave, filename, title,
                    im, plots)
         return None
 
-    def plotter_only(self, index, int_fwm, sim_wind, u, U, P0_p, P0_s,
-                     f_p, f_s, which, ro, mode_names, pump_wave='',
+    def plotter_only(self, index, int_fwm, sim_wind, u, U, D_param, which, ro, mode_names, pump_wave='',
                      filename=None, title=None, im=0, plots=True):
-        self.plotter(index, int_fwm, sim_wind, u, U, P0_p, P0_s,
-                     f_p, f_s, which, ro, mode_names, pump_wave,
+        self.plotter(index, int_fwm, sim_wind, u, U, D_param, which, ro, mode_names, pump_wave,
                      filename, title, im, plots)
         return None
 
-    def saver_only(self, index, int_fwm, sim_wind, u, U, P0_p, P0_s,
-                   f_p, f_s, which, ro, mode_names, pump_wave='',
+    def saver_only(self, index, int_fwm, sim_wind, u, U, D_param,
+                         which, ro, mode_names, pump_wave='',
                    filename=None, title=None, im=0, plots=True):
-        self.saver(index, int_fwm, sim_wind, u, U, P0_p, P0_s, f_p, f_s,
+        self.saver(index, int_fwm, sim_wind, u, U, D_param,
                    which, ro, mode_names, pump_wave, filename, title,
                    im, plots)
         return None
 
-    def plotter(self, index, int_fwm, sim_wind, u, U, P0_p, P0_s,
-                f_p, f_s, which, ro, mode_names, pump_wave='',
+    def plotter(self, index, int_fwm, sim_wind, u, U, D_param, which, ro, mode_names, pump_wave='',
                 filename=None, title=None, im=0, plots=True):
         """Plots many modes"""
 
         x, y = 1e-3*c/sim_wind.fv, w2dbm(np.abs(U[:, :])**2)
-        xlim, ylim = [900, 1250], [-80, 100]
+        xlim, ylim = [x.min(), x.max()], [y.min(), y.max()]
         xlabel, ylabel = r'$\lambda (nm)$', r'$Spectrum (a.u.)$'
         filesave = 'output'+pump_wave+'/output' + \
             str(index) + '/figures/wavelength/'+filename
@@ -105,25 +101,28 @@ class Plotter_saver(object):
                             ylim, xlim, xlabel, ylabel, title, filesave, im)
         return None
 
-    def saver(self, index, int_fwm, sim_wind, u, U, P0_p, P0_s, f_p, f_s,
+    def saver(self, index, int_fwm, sim_wind, u, U, D_param,
               which, ro, mode_names, pump_wave='', filename=None, title=None,
               im=0, plots=True):
         """Dump to HDF5 for postproc"""
-
         if filename[:4] != 'port':
             layer = filename[-1]+'/'+filename[:-1]
         else:
             layer = filename
-        extra_data = np.array([int_fwm.tot_z, which, int_fwm.nm,P0_p, P0_s, f_p, f_s, ro])
+
+
+        if ro == 0 and title == 'original pump':
+            D_save = {**D_param, **{'fv':sim_wind.fv, 'lv':sim_wind.lv, 't': sim_wind.t}}
+            save_variables('input_data', str(layer), filepath='output'+pump_wave+'/output'+str(index)+'/data/', **D_save)
+
+        #extra_data = np.array([int_fwm.tot_z, which, int_fwm.nm,P0_p, P0_s, f_p, f_s, ro])
 
         try:
-            save_variables('data_large', str(layer), filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=np.abs(U[:, :]), t=sim_wind.t,
-                           fv=sim_wind.fv, lv=sim_wind.lv, extra_data = extra_data)
+            save_variables('data_large', str(layer), filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=np.abs(U[:, :]))
         except RuntimeError:
             os.system('rm output'+pump_wave+'/output' +
                       str(index)+'/data/data_large.hdf5')
-            save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=np.abs(U[:, :]), t=sim_wind.t, 
-                           fv=sim_wind.fv, lv=sim_wind.lv, extra_data = extra_data)
+            save_variables('data_large', layer, filepath='output'+pump_wave+'/output'+str(index)+'/data/', U=np.abs(U[:, :]))
             pass
         return None
 

@@ -39,7 +39,12 @@ def RK45CK(dAdzmm, u1, dz, M1, M2,Q, tsh, dt, hf, w_tiled, gam_no_aeff):
     delta is the norm of the maximum estimated error between a 5th
     order and a 4th order integration
     """
-
+    for i in (u1,u1.conj(), M1, M2, Q, tsh, dt, hf, w_tiled, gam_no_aeff):
+        try:
+            print(i.dtype)
+        except:
+            print(type(i))
+    print(Q.dtype)
     A1 = dz*dAdzmm(u1,u1.conj(), M1, M2, Q, tsh, dt, hf, w_tiled, gam_no_aeff)
     u2 = A2_temp(u1, A1)
 
