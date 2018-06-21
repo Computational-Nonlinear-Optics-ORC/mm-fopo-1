@@ -132,16 +132,13 @@ def plot_multiple_modes(nm, x, y, which, mode_names, ylim, xlim, xlabel, ylabel,
     Dynamically plots what is asked of it for multiple modes given at set point.
     """
     fig = plt.figure(figsize=(20.0, 10.0))
-    plt.subplots_adjust(hspace=0.1)
     for i, v in enumerate(range(nm)):
         v = v+1
-        ax1 = plt.subplot(nm, 1, v)
         plt.plot(x, y[i, :], '-', label=mode_names[i])
-        ax1.legend(loc=2)
-        ax1.set_ylim(ylim)
-        ax1.set_xlim(xlim)
-        if i != nm - 1:
-            ax1.get_xaxis().set_visible(False)
+    plt.ylim(ylim)
+    plt.xlim(xlim)
+    plt.legend(loc = 2)
+
     ax = fig.add_subplot(111, frameon=False)
     ax.axes.get_xaxis().set_ticks([])
     ax.axes.get_yaxis().set_ticks([])

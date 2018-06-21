@@ -116,6 +116,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
         ex.exporter(index, int_fwm, sim_wind, out1, out2, D_param, -
                     1, ro,  mode_names, master_index, str(ro)+'4',
                     pulse_pos_dict[4], D_pic[6], plots)
+    consolidate(max_rounds, int_fwm,master_index, index)
     return None
 
 
@@ -261,7 +262,7 @@ def main():
     z = 1000                                 # Length of the fibre
     P_p1 = 1
     P_p2 = 1
-    P_s = 100e-3
+    P_s = 1e-3
     spl_losses = [0, 0, 1.4]
 
 
@@ -271,7 +272,7 @@ def main():
     
     lamp1 = 1549
     lamp2 = [1555]
-    lams = [1551.85]
+    lams = [1550]
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB,
                'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,
                'spl_losses': spl_losses,
@@ -312,8 +313,6 @@ def main():
         else:
             A = Parallel(n_jobs=num_cores)(delayed(formulate)(**{**D_ins[i], ** large_dic}) for i in range(len(D_ins)))
         _temps.cleanup_folder()
-    consolidate_hdf5_steps(len(outside_var), len(
-        inside_var), filepath='loading_data/step_data/')
     print('\a')
     return None
 

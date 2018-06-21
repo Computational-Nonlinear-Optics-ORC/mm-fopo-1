@@ -135,20 +135,32 @@ class raman_object(object):
             return self.hf
 
 
-def consolidate_hdf5_steps(master_index_l, size_ins, filepath):
+def consolidate(max_rounds, int_fwm,master_index, index,  filename = 'data_large'):
     """
-    Puts all exported HDF5 files created to one and saves it for future 
-    computational saving time. 
+    Loads the HDF5 data and consolidates them for storage size
+    reduction after the oscillations are done.
     """
-    if os.path.isfile(filepath+'step_index_2m.hdf5'):
-        os.system('rm ' + filepath+'step_index_2m.hdf5')
-    for master_index in range(master_index_l):
-        for index in range(size_ins):
-            layer = str(int(size_ins * master_index + index))
-            filename = 'step_index_2m'+'_new_'+str(master_index)+'_'+str(index)
-            D = load_step_index_params(filename, filepath)[-1]
-            save_variables('step_index_2m', layer, filepath=filepath, **D)
-            os.system('rm '+filepath+filename+'.hdf5')
+
+
+    layer_0 = '0/0'
+    filepath = 'output{}/output{}/data/'.format(master_index, index)
+    file_read = filepath + filename
+    file_save = filepath + filename+'_conc'
+    
+    # Input data, small, no need to cons
+    D = read_variables(file_read, '0/0')
+    save_variables(file_save, 'input', **D)
+
+
+    U_cons = np.zeros([2,4,max_rounds, int_fwm.nt], dtype = np.float64)
+    # Reading of all the oscillating spectra and sending them to a 3D array
+    unfortmated_string = '{}/{}/U'
+    with h5py.File(file_read+'.hdf5', 'r') as f:
+        for pop in range(1,5):
+            for r in range(max_rounds):
+                U_cons[:,pop - 1,r,:] = f.get(unfortmated_string.format(pop,r)).value
+    save_variables(file_save, 'results', U = U_cons)            
+    os.system('mv '+file_save+'.hdf5 '+file_read+'.hdf5')
     return None
 
 
