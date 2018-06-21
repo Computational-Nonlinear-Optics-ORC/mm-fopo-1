@@ -514,7 +514,7 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
         if dztot == (int_fwm.z):
             exitt = True
         elif ((dztot + dz) >= int_fwm.z):
-            dz = int_fwm.dzstep - dztot
+            dz = int_fwm.z - dztot
         ###################################################################
     u = u1
     U = fftshift(fft(u), axes=-1)
