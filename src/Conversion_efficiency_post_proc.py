@@ -444,7 +444,7 @@ for pos in ('4','2'):
                 filepath = which+'/output'+str(i)+'/data/',filepath2 = 'output_final/'+str(ii)+'/pos'+str(pos)+'/')
 
             fmin,fmax,rounds  = 310,330,2000#np.min(CE.fv),np.max(CE.fv),None
-            fmin,fmax,rounds = 160,240, None
+            fmin,fmax,rounds = None,None, None
             #fmin,fmax,rounds = np.min(CE.fv),np.max(CE.fv), None
             #if animators:
             #    os.system('rm -rf animators'+str(i)+'; mkdir animators'+str(i))
