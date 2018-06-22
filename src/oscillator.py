@@ -29,8 +29,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
     p2_pos = D_param['where'][4]
     s_pos = D_param['where'][2]
 
-    print(p1_pos, p2_pos, s_pos)
-    print(D_param['fp1'], D_param['fp2'], D_param['fs'])
+
     noise_new_or = noise_obj.noise_func_freq(int_fwm, sim_wind)
     u[:, :] = noise_obj.noise
 
@@ -245,7 +244,7 @@ def main():
     # Number of modes (include degenerate polarisation)
     
     nm = 2
-    mode_names = ['LP01', 'LP11b']         # Names of modes for plotting
+    mode_names = ['LP01', 'LP11a']         # Names of modes for plotting
     if 'mpi' in sys.argv:
         method = 'mpi'
     elif 'joblib' in sys.argv:
@@ -272,7 +271,7 @@ def main():
     
     lamp1 = 1549
     lamp2 = [1555]
-    lams = [1550]
+    lams = [1550,1550.2]
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB,
                'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,
                'spl_losses': spl_losses,

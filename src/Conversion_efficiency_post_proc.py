@@ -32,41 +32,35 @@ def selmier(l):
     return (1 + a + b +c)**0.5
 
 
+
+
+
 class Conversion_efficiency(object):
-    def __init__(self, freq_band, last, safety, possition, filename=None, filepath='',filename2 = 'CE',filepath2 = 'output_final/'):
-        self.mode_names = ('LP01x', 'LP01y')
+    def __init__(self, freq_band_HW, last, safety, possition, filename=None, filepath='',filename2 = 'CE',filepath2 = 'output_final/'):
+        self.mode_names = ('LP01', 'LP11a')
         self.n = 1.444
         self.last = last
         self.safety = safety
-        self.variables = ('P_p', 'P_s', 'f_p', 'f_s','l_p','l_s,' 'P_out', 'P_bef','CE', 'CE_std', 'P_out_std','rin', 'L')
-        self.spec, self.fv, self.t, self.P0_p, self.P0_s,self.f_p,\
-        self.f_s, self.P_bef,self.ro,self.U_large,tt,self.L =\
-                                        self.load_spectrum('0',filename, filepath)
-        self.pos_of_pump()
-        self.f_i = self.f_p - (self.f_s - self.f_p) 
-        self.P_max = np.array([np.max(i) for i in self.spec])
-   
-        self.spec, self.fv, self.t, self.P0_p, self.P0_s,self.f_p,\
-        self.f_s, self.P_bef,self.ro,U_large,tt,self.L =\
-                   self.load_spectrum(possition,filename, filepath)
-        self.tt = tt
-        self.freq_band = freq_band
-        self.U_large = np.asanyarray(U_large)
+
+        P_p1, P_p2, P_s, self.fv, self.lv,self.t, self.where = self.load_input_param(filepath)
         
+        self.input_powers = (P_p1, P_p2, P_s)
+
+
+        self.U_in, self.U_out = self.load_spectrum(possition,filename, filepath)
         
-        self.nt = np.shape(self.spec)[1]
+        fmi, fp1, fs, fpc, fp2,fbs  = (self.fv[i] for i in self.where)
+
+        #print(fmi, fp1, fs, fpc, fp2,fbs)
+        #sys.exit()
+        sys.exit()
+        self.nt = np.shape(self.U_in)[-1]
+        self.rounds = np.shape(self.U_in)[-2]
         self.possition = possition
-
-        
-
-        self.P_in = self.P0_p + self.P0_s
-        self.pos_of_signal()
-        self.pos_of_idler()
-
-        #if possition == '2' or possition == '1':
-        #fv_id = self.fs_id
-
-        #else:
+        temp = np.argmin(abs(self.fv - 0.5 * (self.fv[0] + self.fv[-1]) - freq_band_HW))
+        self.band_idx_seper = [i * temp for i in (-1,1)]
+        print(self.band_idx_seper)
+        print([[self.fv[self.band_idx_seper[0] + i], self.fv[self.band_idx_seper[1] + i]] for i in self.where])
         fv_id = self.fi_id
 
         self.lam_wanted = 1e-3*c/self.fv[fv_id]
@@ -134,50 +128,32 @@ class Conversion_efficiency(object):
         for i in range(len(self.P_max)):
            self.spec_s[i,:] = w2dbm(self.spec[i,:]) - w2dbm(self.P_max[i])
         return None
-
-    def pos_of_pump(self):
-        self.fp_id = [np.argmin(np.abs(self.fv - self.f_p)) for i in range(2)]
-        return None
     
-    def pos_of_idler(self):
-        self.fi_id = [np.argmin(np.abs(self.fv - self.f_i)) for i in range(2)]
+    def load_input_param(self, filepath=''):
+        filename='input_data'
+        
+        D = read_variables(filepath+filename, '0/0')
+        P_p1 = D['P_p1']
+        P_p2 = D['P_p2']
+        P_s = D['P_s']
+        fv = D['fv']
+        lv = D['lv']
+        t = D['t']
+        where = D['where']
 
-        return None   
-    
-    def pos_of_signal(self):
-
-        self.fs_id = [np.argmin(np.abs(self.fv - self.f_s)) for i in range(2)]
-        return None   
-    
-
+        return P_p1, P_p2, P_s, fv, lv, t, where
 
     
     def load_spectrum(self, possition,filename='data_large', filepath=''):
-        with h5py.File(filepath+filename+'.hdf5','r') as f: 
-            l = f.get(possition)
-            U_large = ()
-            integers_list = [int(i) for i in l.keys()]
-            integers_list.sort()
-            integers_generator = (str(n) for n in integers_list)
+        print('results/'+possition)
 
-            for i in integers_generator:
-                steady_state = i
-                layers = possition + '/' + steady_state
-                D = read_variables(filename,layers, filepath)
-                U= D['U']
-                U_large += (U,)
+        U_in = read_variables(filepath + filename, 'input')['U']
+        U_out = read_variables(filepath + filename, 'results/'+possition)['U']
 
-            U_large = np.asanyarray(U_large)
-            fv,t  = D['fv'],D['t']
-            Uabs = w2dbm(np.abs(U)**2)
-            L, which, nm, P0_p, P0_s, f_p, f_s, ro = D['extra_data']
-            layers = '1/0'
-            D = read_variables(filename,layers, filepath)
-            fvs,tt = D['fv'],D['t']
-            Uabss =np.abs(D['U']*(t[1] - t[0]))**2
-            P_bef = simps(Uabss,fvs)/(2*np.max(tt))
-        return dbm2w(Uabs), fv,t, P0_p, P0_s, f_p, f_s,P_bef, ro, U_large,t ,L
 
+        U_in, U_out = (i * i * (self.t[1] - self.t[0])**2 for i in (U_in, U_out))
+
+        return U_in,U_out
     
     def calc_P_out(self,start,end):
         P_out = []
@@ -439,7 +415,7 @@ for pos in ('4','2'):
 
         for i in inside_vec[int(ii)]:
             print(ii,i)
-            CE = Conversion_efficiency(freq_band = 2,possition = pos,last = 500,\
+            CE = Conversion_efficiency(freq_band_HW = 0.1,possition = pos,last = 500,\
                 safety = 2, filename = 'data_large',\
                 filepath = which+'/output'+str(i)+'/data/',filepath2 = 'output_final/'+str(ii)+'/pos'+str(pos)+'/')
 
