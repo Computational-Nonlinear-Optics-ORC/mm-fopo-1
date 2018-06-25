@@ -42,73 +42,90 @@ class Conversion_efficiency(object):
         self.last = last
         self.safety = safety
 
-        P_p1, P_p2, P_s, self.fv, self.lv,self.t, self.where = self.load_input_param(filepath)
+        P_p1, P_p2, P_s, self.fv, self.lv,self.t, self.where, self.L = self.load_input_param(filepath)
         
         self.input_powers = (P_p1, P_p2, P_s)
 
 
         self.U_in, self.U_out = self.load_spectrum(possition,filename, filepath)
-        
-        fmi, fp1, fs, fpc, fp2,fbs  = (self.fv[i] for i in self.where)
 
-        #print(fmi, fp1, fs, fpc, fp2,fbs)
-        #sys.exit()
-        sys.exit()
+
+        self.f_waves  = [self.fv[i] for i in self.where]
+
+
         self.nt = np.shape(self.U_in)[-1]
         self.rounds = np.shape(self.U_in)[-2]
         self.possition = possition
         temp = np.argmin(abs(self.fv - 0.5 * (self.fv[0] + self.fv[-1]) - freq_band_HW))
         self.band_idx_seper = [i * temp for i in (-1,1)]
-        print(self.band_idx_seper)
-        print([[self.fv[self.band_idx_seper[0] + i], self.fv[self.band_idx_seper[1] + i]] for i in self.where])
-        fv_id = self.fi_id
 
-        self.lam_wanted = 1e-3*c/self.fv[fv_id]
-        self.lamp = 1e-3*c/self.f_p
-        self.l_s = 1e-3*c/self.f_s
-      
-        self.U_large_norm = np.empty_like(U_large)
 
-        self.n = selmier(1e-3*self.lam_wanted)
-        self.time_trip = self.L*self.n/c
+        self.lam_waves = [1e-3*c/i for i in self.f_waves]
+
+        
+        self.U_large_norm = np.empty_like(self.U_out)
+
+        n_vec = [selmier(1e-3*i) for i in self.lam_waves]
+        self.time_trip = [self.L*n/c for n in n_vec]
         
         
-        for i,P_max in enumerate(self.P_max):
-            self.U_large_norm[:,i,:] =\
-                    w2dbm(np.abs(self.U_large[:,i,:])**2) - P_max
+        for i in range(self.U_large_norm.shape[0]):
+            self.U_large_norm[i,:,:] =\
+                    w2dbm(np.abs(self.U_out[i,:,:])**2) - w2dbm(P_p1)
 
-        P_out_vec = []
 
-        start, end = self.fv[fv_id] - freq_band, self.fv[fv_id] + freq_band
 
-        #start_c, end_c = self.fv[fv_id_c] - freq_band, self.fv[fv_id_c] + freq_band
+        start_vec = [i - freq_band_HW for i in self.f_waves]
+        end_vec =   [i + freq_band_HW for i in self.f_waves]
+
+        print(self.U_out.shape)
+
+        print(self.f_waves)
         
-        start_i = [np.argmin(np.abs(self.fv - i)) for i in start]
-        end_i = [np.argmin(np.abs(self.fv - i)) for i in end]
-       
+        P_out_vec = np.empty([6,self.U_out.shape[1]])
+        count = 0
+        for start, end in zip(start_vec[:3], end_vec[:3]):
+            start_i = np.argmin(np.abs(self.fv - start))
+            end_i = np.argmin(np.abs(self.fv - end))
+            print(start_i, end_i)
+            for ii,UU in enumerate(self.U_out[0,:,:]):
+                self.spec = UU
+                P_out_vec[count,ii] = self.calc_P_out(start_i,end_i)
+            count +=1
+        
 
-        Uabs_large = np.abs(U_large)**2
-        for i in Uabs_large:
-            self.spec = i
-            P_out_vec.append(self.calc_P_out(start_i,end_i))
 
-        self.P_out_vec = np.asanyarray(P_out_vec)
+        for start, end in zip(start_vec[3:], end_vec[3:]):
+            start_i = np.argmin(np.abs(self.fv - start))
+            end_i = np.argmin(np.abs(self.fv - end))
+            for ii,UU in enumerate(self.U_out[1,:,:]):
+                self.spec = UU
+                P_out_vec[count,ii] = self.calc_P_out(start_i,end_i)
+            count +=1
+
+        start_i = np.argmin(np.abs(self.fv - start_vec[2]))
+        end_i = np.argmin(np.abs(self.fv - end_vec[2]))
+        
+        self.spec = self.U_in[0]
+        self.P_signal_in = self.calc_P_out(start_i,end_i)
+
+
+
+        self.P_out_vec = P_out_vec
 
 
         #for l, la in enumerate(last):
-        print('l', self.P_out_vec)
-        print('CE', 100*np.mean(self.P_out_vec[-last::,:], axis = 0)/ (self.P0_p + self.P0_s))
         D_now = {}
         D_now['L'] = self.L
-        D_now['P_out'] = np.mean(self.P_out_vec[-last::,:], axis = 0)
-        D_now['CE'] = 100*D_now['P_out']/ (self.P0_p + self.P0_s)
-        D_now['P_out_std'] = np.std(self.P_out_vec[-last::,:], axis = 0)
-        D_now['CE_std'] = np.std(self.P_out_vec[-last::,:] / (self.P0_p + self.P0_s), axis = 0)
+        D_now['P_out'] = np.mean(self.P_out_vec[:,-last::], axis = 0)
+        D_now['CE'] = 100*D_now['P_out']/ self.P_signal_in
+        D_now['P_out_std'] = np.std(self.P_out_vec[:,-last::], axis = 0)
+        D_now['CE_std'] = np.std(self.P_out_vec[:,-last::] / self.P_signal_in, axis = 0)
         print(D_now['CE_std'])
         D_now['rin'] = 10*np.log10(self.time_trip*D_now['P_out_std']**2 / D_now['P_out']**2)
-        D_now['P_p'], D_now['P_s'], D_now['f_p'], D_now['f_s'],\
-            D_now['l_p'], D_now['l_s'], D_now['P_bef'] =\
-            self.P0_p, self.P0_s, self.f_p, self.f_s, self.lamp, self.l_s, self.P_bef
+        D_now['input_powers'] = self.input_powers
+        D_now['frequencies'] = self.f_waves
+        
 
         for i,j in zip(D_now.keys(), D_now.values()):
             D_now[i] = [j]
@@ -122,11 +139,11 @@ class Conversion_efficiency(object):
             D = D_now
         with open(filepath2+filename2+'.pickle','wb') as f:
             pl.dump(D,f)
-        self.spec = np.abs(U_large[-1,:,:])**2
+        #self.spec = np.abs(U_large[-1,:,:])**2
         
-        self.spec_s = np.empty_like(self.spec)
-        for i in range(len(self.P_max)):
-           self.spec_s[i,:] = w2dbm(self.spec[i,:]) - w2dbm(self.P_max[i])
+        #self.spec_s = np.empty_like(self.spec)
+        #for i in range(len(self.P_max)):
+        #   self.spec_s[i,:] = w2dbm(self.spec[i,:]) - w2dbm(self.P_max[i])
         return None
     
     def load_input_param(self, filepath=''):
@@ -140,8 +157,8 @@ class Conversion_efficiency(object):
         lv = D['lv']
         t = D['t']
         where = D['where']
-
-        return P_p1, P_p2, P_s, fv, lv, t, where
+        L = D['L']
+        return P_p1, P_p2, P_s, fv, lv, t, where, L
 
     
     def load_spectrum(self, possition,filename='data_large', filepath=''):
@@ -151,47 +168,51 @@ class Conversion_efficiency(object):
         U_out = read_variables(filepath + filename, 'results/'+possition)['U']
 
 
-        U_in, U_out = (i * i * (self.t[1] - self.t[0])**2 for i in (U_in, U_out))
+        U_in, U_out = (np.abs(i)**2 * (self.t[1] - self.t[0])**2 for i in (U_in, U_out))
 
         return U_in,U_out
     
-    def calc_P_out(self,start,end):
-        P_out = []
-        for i,j,sp in zip(start,end,self.spec):
-            P_out.append(simps(sp[i:j]*(self.tt[1] - self.tt[0])**2,\
-                         self.fv[i:j])/(2*np.max(self.tt)))
+    def calc_P_out(self,i,j):
+       
+        P_out = simps(self.spec[i:j],\
+                     self.fv[i:j])/(2*np.max(self.t))
         return P_out   
 
     
     def P_out_round(self,P,filepath,filesave):
         """Plots the output average power with respect to round trip number"""
-        x = range(len(P))
+        x = range(P.shape[-1])
         y = np.asanyarray(P)
-        fig = plt.figure(figsize=(20.0, 10.0))
-        plt.subplots_adjust(hspace=0.1)
-        for i, v in enumerate(range(y.shape[1])):
-            v = v+1
-            ax1 = plt.subplot(y.shape[1], 1, v)
-            plt.plot(x, y[:,i], '-', label = self.mode_names[i])
-            ax1.legend(loc=2)
-            if i != y.shape[1] - 1:
-                ax1.get_xaxis().set_visible(False)
-        ax = fig.add_subplot(111, frameon=False)
-        ax.axes.get_xaxis().set_ticks([])
-        ax.axes.get_yaxis().set_ticks([])
-        ax.set_title(f"$P_p=$ {float(CE.P0_p):.{6}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted[i]):.{6}} nm ({float(1e-3*c/CE.lam_wanted[i]):.6} Thz)")
-        plt.grid()
-        ax.yaxis.set_label_coords(-0.05, 0.5)
-        ax.xaxis.set_label_coords(0.5, -0.05)
-        ax.set_xlabel('Rounds')
-        ax.set_ylabel('Output Power (W)')
-        plt.savefig(filepath+'power_per_round'+filesave+'.png')
-        data = (range(len(P)), P)
-        _data ={'pump_power':self.P0_p, 'pump_wavelength': self.lamp, 'out_wave': self.lam_wanted}
-        with open(filepath+'power_per_round'+filesave+'.pickle','wb') as f:
-            pl.dump((data,_data),f)
-        plt.clf()
-        plt.close('all')
+        names = ('MI', 'P1', 'S', 'PC', 'P2', 'BS')
+        for i, name in enumerate(names):
+            fig = plt.figure(figsize=(20.0, 10.0))
+            plt.subplots_adjust(hspace=0.1)
+            for i, v in enumerate(range(y.shape[1])):
+                v = v+1
+                ax1 = plt.subplot(y.shape[1], 1, v)
+                plt.plot(x, y[i,:], '-', label = self.mode_names[i])
+                ax1.legend(loc=2)
+                if i != y.shape[1] - 1:
+                    ax1.get_xaxis().set_visible(False)
+            ax = fig.add_subplot(111, frameon=False)
+            ax.axes.get_xaxis().set_ticks([])
+            ax.axes.get_yaxis().set_ticks([])
+            ax.set_title(f"$P_p1=$ {float(CE.input_powers[0]):.{2}} W, $P_p2=$ {float(CE.input_powers[1]):.{2}} W,"+
+                    "$P_s=$ {float(CE.input_powers[2]):.{2}} mW,"+
+                    "$\\lambda_p1=$ {float(CE.lam_waves[1]):.{6}} nm,  $\\lambda_p2=$ {float(CE.lam_waves[2]):.{6}} nm,"+
+                    "$\\lambda_s=$ {float(CE.lam_waves[4]):.{6}} nm,")
+            plt.grid()
+            ax.yaxis.set_label_coords(-0.05, 0.5)
+            ax.xaxis.set_label_coords(0.5, -0.05)
+            ax.set_xlabel('Rounds')
+            ax.set_ylabel('Output Power (W)')
+            plt.savefig(filepath+'power_per_round'+filesave+'.png')
+            data = (range(len(P)), P)
+            _data ={'pump_power':self.P0_p, 'pump_wavelength': self.lamp, 'out_wave': self.lam_wanted}
+            with open(filepath+'/'+name+'/power_per_round'+filesave+'.pickle','wb') as f:
+                pl.dump((data,_data),f)
+            plt.clf()
+            plt.close('all')
         return None
 
 
@@ -220,7 +241,10 @@ class Conversion_efficiency(object):
         ax = fig.add_subplot(111, frameon=False)
         ax.axes.get_xaxis().set_ticks([])
         ax.axes.get_yaxis().set_ticks([])
-        #ax.set_title(f"$P_p=$ {float(CE.P0_p):.{6}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted[i]):.{6}} nm ({float(1e-3*c/CE.lam_wanted[i]):.6} Thz)")
+        ax.set_title(f"$P_p1=$ {float(CE.input_powers[0]):.{2}} W, $P_p2=$ {float(CE.input_powers[1]):.{2}} W,"+
+                    "$P_s=$ {float(CE.input_powers[2]):.{2}} mW,"+
+                    "$\\lambda_p1=$ {float(CE.lam_waves[1]):.{6}} nm,  $\\lambda_p2=$ {float(CE.lam_waves[2]):.{6}} nm,"+
+                    "$\\lambda_s=$ {float(CE.lam_waves[4]):.{6}} nm,")
         plt.grid()
         ax.yaxis.set_label_coords(-0.05, 0.5)
         ax.xaxis.set_label_coords(0.5, -0.05)
@@ -311,22 +335,14 @@ def plot_CE(x_key,y_key,std = True,filename = 'CE', filepath='output_final/', fi
 
 
 def contor_plot(CE,fmin = None,fmax = None,  rounds = None,folder = None,filename = None):
-    if not(fmin):
-        fmin = CE.fv[CE.fv_id] - CE.freq_band
-    if not(fmax):
-        fmax = CE.fv[CE.fv_id] + CE.freq_band
-    print(fmin,fmax)
-    i = np.where(np.abs(CE.fv - fmin) == np.min(np.abs(CE.fv - fmin)))[0][0]
-    j = np.where(np.abs(CE.fv - fmax) == np.min(np.abs(CE.fv - fmax)))[0][0]
-    
 
 
     if rounds is None:
         rounds = np.shape(CE.U_large_norm)[0]
    
     CE.ro = range(rounds)
-    x,y = np.meshgrid(CE.ro[:rounds], CE.fv[i:j])
-    z = CE.U_large_norm[:rounds,:,i:j]
+    x,y = np.meshgrid(CE.ro[:rounds], CE.fv[:])
+    z = CE.U_large_norm[:rounds,:,:]
     
     low_values_indices = z < -60  # Where values are low
     z[low_values_indices] = -60  # All low values set to 0
@@ -337,9 +353,12 @@ def contor_plot(CE,fmin = None,fmax = None,  rounds = None,folder = None,filenam
         plt.ylim(fmin,fmax)
         plt.ylabel(r'$f(THz)$')
         plt.colorbar()
-        plt.title(f"$P_p=$ {float(CE.P0_p):.{2}} W, $P_s=$ {float(CE.P0_s*1e3):.{2}} mW, $\\lambda_p=$ {float(CE.lamp):.{6}} nm,  $\\lambda_s=$ {float(CE.l_s):.{6}} nm, maximum output at: {float(CE.lam_wanted[nm]):.{6}} nm")
+        plt.title(f"$P_p1=$ {float(CE.input_powers[0]):.{2}} W, $P_p2=$ {float(CE.input_powers[1]):.{2}} W,"+
+                    "$P_s=$ {float(CE.input_powers[2]):.{2}} mW,"+
+                    "$\\lambda_p1=$ {float(CE.lam_waves[1]):.{6}} nm,  $\\lambda_p2=$ {float(CE.lam_waves[2]):.{6}} nm,"+
+                    "$\\lambda_s=$ {float(CE.lam_waves[4]):.{6}} nm,")
         data = (CE.ro, CE.fv, z)
-        _data ={'pump_power':CE.P0_p, 'pump_wavelength': CE.lamp, 'out_wave': CE.lam_wanted}
+        _data ={'input_powers':CE.input_powers, 'waves': CE.lam_waves}
         if filename is not None:
             plt.savefig(folder+str(nm)+'_'+filename, bbox_inches = 'tight')
             plt.clf()
@@ -409,7 +428,14 @@ for pos in ('4','2'):
         
         os.system('mkdir output_final/'+str(ii))
         os.system('mkdir output_final/'+str(ii)+'/pos'+pos+'/ ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/many ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/spectra;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/casc_powers;'
+                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers;'
+                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/BS;'
+                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/PC;'
+                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/MI;'
+                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/P1;'
+                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/P2;'
+                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/S;'
+                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/casc_powers;'
                  +'mkdir output_final/'+str(ii)+'/pos'+pos+'/final_specs;')
 
 

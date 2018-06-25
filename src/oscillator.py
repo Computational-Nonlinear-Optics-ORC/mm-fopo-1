@@ -115,26 +115,11 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
         ex.exporter(index, int_fwm, sim_wind, out1, out2, D_param, -
                     1, ro,  mode_names, master_index, str(ro)+'4',
                     pulse_pos_dict[4], D_pic[6], plots)
+    if max_rounds == 0:
+        max_rounds =1
     consolidate(max_rounds, int_fwm,master_index, index)
     return None
 
-
-def calc_P_out(U, U_original_pump, fv, t):
-    U = np.abs(U)**2
-    U_original_pump = np.abs(U_original_pump)**2
-    freq_band = 2
-    fp_id = np.where(U_original_pump == np.max(U_original_pump))[0][0]
-    plom = fp_id+10
-    fv_id = np.where(U[plom:] == np.max(U[plom:]))[0][0]
-    fv_id += plom-1
-    start, end = fv[fv_id] - freq_band, fv[fv_id] + freq_band
-    i = np.where(
-        np.abs(fv - start) == np.min(np.abs(fv - start)))[0][0]
-    j = np.where(
-        np.abs(fv - end) == np.min(np.abs(fv - end)))[0][0]
-    E_out = simps(U[i:j]*(t[1] - t[0])**2, fv[i:j])
-    P_out = E_out/(2*np.max(t))
-    return P_out
 
 
 @unpack_args

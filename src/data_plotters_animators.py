@@ -112,7 +112,7 @@ class Plotter_saver(object):
 
 
         if ro == 0 and title == 'original pump':
-            D_save = {**D_param, **{'fv':sim_wind.fv, 'lv':sim_wind.lv, 't': sim_wind.t}}
+            D_save = {**D_param, **{'fv':sim_wind.fv, 'lv':sim_wind.lv, 't': sim_wind.t, 'L': int_fwm.z}}
             save_variables('input_data', str(layer), filepath='output'+pump_wave+'/output'+str(index)+'/data/', **D_save)
 
         #extra_data = np.array([int_fwm.tot_z, which, int_fwm.nm,P0_p, P0_s, f_p, f_s, ro])
