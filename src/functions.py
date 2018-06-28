@@ -309,8 +309,8 @@ class WDM(object):
         eps2 = np.tile(eps2, (nm, 1))
         self.A = np.array([[eps, eps2],
                            [eps2, eps]])
-        if fopa:
-            self.U_calc = self.U_calc_over
+        #if fopa:
+        self.U_calc = self.U_calc_over
         return None
 
     def U_calc_over(self, U_in):
