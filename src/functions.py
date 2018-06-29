@@ -536,9 +536,12 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
 
 def fv_creator(lamp1,lamp2, lams, int_fwm):
     """
-    Creates the freequency grid of the simmualtion and returns it.. 
+    Creates the freequency grid of the
+    simmualtion and returns it. The signal 
+    input is approximated as close as posible to
+    the asked value because of the grid.  
     """
-    fp1, fp2,fs = [1e-3 * c /i for i in (lamp1, lamp2, lams)]
+    fp1, fp2, fs = [1e-3 * c /i for i in (lamp1, lamp2, lams)]
     
     fv1 = np.linspace(fp2, fp1, int_fwm.nt//2)
 

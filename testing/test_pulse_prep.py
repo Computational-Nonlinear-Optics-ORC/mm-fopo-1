@@ -11,8 +11,8 @@ class Test_loss:
         alphadB = np.array([1, 1])
         int_fwm = sim_parameters(2.5e-20, 2, alphadB)
         int_fwm.general_options(1e-13, 1, 1, 1)
-        int_fwm.propagation_parameters(10, [0,18], 1, 100,10)
-        sim_wind = sim_window(fv, 1,1, int_fwm, 1)
+        int_fwm.propagation_parameters(10, 1000, 0.1)
+        sim_wind = sim_window(fv, 1550e-9,1550e-9,int_fwm)
 
         loss = Loss(int_fwm, sim_wind, amax=alphadB)
         alpha_func = loss.atten_func_full(sim_wind.fv)
@@ -26,8 +26,8 @@ class Test_loss:
         alphadB = np.array([1, 2])
         int_fwm = sim_parameters(2.5e-20, 2, alphadB)
         int_fwm.general_options(1e-13, 1, 1, 1)
-        int_fwm.propagation_parameters(10, [0,18], 1, 100,10)
-        sim_wind = sim_window(fv, 1,1, int_fwm, 1)
+        int_fwm.propagation_parameters(10, 1000, 0.1)
+        sim_wind = sim_window(fv, 1550e-9,1550e-9,int_fwm)
 
         loss = Loss(int_fwm, sim_wind, amax=2*alphadB)
         alpha_func = loss.atten_func_full(sim_wind.fv)
@@ -42,8 +42,8 @@ class Test_loss:
         alphadB = np.array([1, 2])
         int_fwm = sim_parameters(2.5e-20, 2, alphadB)
         int_fwm.general_options(1e-13, 1, 1, 1)
-        int_fwm.propagation_parameters(10, [0,18], 1, 100,10)
-        sim_wind = sim_window(fv, 1,1,int_fwm, 1)
+        int_fwm.propagation_parameters(10, 1000, 0.1)
+        sim_wind = sim_window(fv, 1550e-9,1550e-9,int_fwm)
 
         loss = Loss(int_fwm, sim_wind, amax=2*alphadB)
         alpha_func = loss.atten_func_full(sim_wind.fv)
@@ -60,21 +60,24 @@ def test_fv_creator():
     class int_fwm1(object):
 
         def __init__(self):
-            self.N = 14
+            self.N = 10
             self.nt = 2**self.N
 
     int_fwm = int_fwm1()
-    lam_p1 = 1000
-    lam_s = 1200
-    #fv, where = fv_creator(lam_p1, lam_s, int_fwm)
-    fv, where = fv_creator(lam_p1,lam_s,0, 50, int_fwm)
+    lamp1 = 1549
+    lamp2 = 1555
+    lams = 1550
+    fv, D_freq = fv_creator(lamp1,lamp2, lams, int_fwm)
     mins = np.min(1e-3*c/fv)
-    f1 = 1e-3*c/lam_p1
-    fs = 1e-3*c/lam_s
-
-    assert(all(i < max(fv) and i > min(fv)
-               for i in (f1, fs)))
-
+    f1 = 1e-3 * c / lamp1
+    fs = fv[D_freq['where'][2]]
+    f2 = 1e-3 * c / lamp2
+    F = f1 - fs
+    freqs = (f2 - F, f2, f2 + F, fs, f1, f1+F)
+    assert_allclose(freqs, [fv[i] for i in D_freq['where']][::-1])
+    fmin = fv.min()
+    fmax = fv.max()
+    assert np.all( [ i < fmax and i > fmin for i in freqs])
 
 def test_noise():
     class sim_windows(object):
