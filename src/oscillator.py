@@ -124,7 +124,8 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
 
 @unpack_args
 def formulate(index, n2, gama, alphadB, P_p1, P_p2, P_s, spl_losses,
-              lamda_c, WDMS_pars, lamp1, lamp2, lams, num_cores, maxerr, ss, ram, plots,
+              lamda_c, WDMS_pars, lamp1, lamp2, lams, num_cores,
+              maxerr, ss, ram, plots,
               N, nt, master_index, nm, mode_names, fopa,z):
     ex = Plotter_saver(plots, True)  # construct exporter
     "------------------propagation paramaters------------------"

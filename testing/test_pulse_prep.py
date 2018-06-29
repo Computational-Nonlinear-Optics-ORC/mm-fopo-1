@@ -3,7 +3,7 @@ sys.path.append('src')
 from functions import *
 import numpy as np
 from numpy.testing import assert_allclose, assert_raises,assert_almost_equal
-
+from overlaps import *
 
 class Test_loss:
     def test_loss1(a):
@@ -113,18 +113,13 @@ def test_time_frequency():
 "----------------Raman response--------------"
 #os.system('rm -r testing_data/step_index/*')
 
-"""
+
 class Raman():
     l_vec = np.linspace(1600e-9, 1500e-9, 64)
     fv = 1e-12*c/l_vec
-    dnerr = [0]
     index = 0
     master_index = 0
-    a_vec = [2.2e-6]
-    M1, M2, betas, Q_large = \
-        fibre_parameter_loader(fv, a_vec, dnerr, index, master_index,
-                               'step_index_2m', filepath='testing/testing_data/step_index/')
-
+    M1, M2, Q_large = fibre_overlaps_loader()
 
 
     def test_raman_off(self):
@@ -145,7 +140,6 @@ class Raman():
                                   for i in range(hf_exact.shape[0])])
         hf = ram.raman_load(t, dt, self.M2)
 
-        #hf_exact = np.reshape(hf_exact, hf.shape)
         hf_exact = np.tile(hf_exact, (len(self.M2[1, :]), 1))
         assert_allclose(hf, hf_exact)
 
@@ -153,7 +147,6 @@ class Raman():
     def test_raman_analytic_1(self):
         ram = raman_object('on', 'analytic')
         D = loadmat('testing/testing_data/Raman_analytic.mat')
-        #M1, M2, Q = Q_matrixes(1, 2.5e-20, 1.55e-6, 0.01)
         t = D['t']
         t = np.asanyarray([t[i][0] for i in range(t.shape[0])])
         dt = D['dt'][0][0]
@@ -166,7 +159,6 @@ class Raman():
 
     def test_raman_load_2(self):
         ram = raman_object('on', 'load')
-        #M1, M2, Q = Q_matrixes(2, 2.5e-20, 1.55e-6, 0.01)
         D = loadmat('testing/testing_data/Raman_measured.mat')
         t = D['t']
         t = np.asanyarray([t[i][0] for i in range(t.shape[0])])
@@ -182,7 +174,6 @@ class Raman():
     def test_raman_analytic_2(self):
         ram = raman_object('on', 'analytic')
         D = loadmat('testing/testing_data/Raman_analytic.mat')
-        #M1, M2, Q = Q_matrixes(2, 2.5e-20, 1.55e-6, 0.01)
         t = D['t']
         t = np.asanyarray([t[i][0] for i in range(t.shape[0])])
         dt = D['dt'][0][0]
@@ -196,38 +187,40 @@ class Raman():
 "----------------------------Dispersion operator--------------"
 
 
-#class Test_dispersion_raman(Raman):
+class Test_dispersion(Raman):
 
-#    l_vec = np.linspace(1600e-9, 1500e-9, 64)
-#    int_fwm = sim_parameters(2.5e-20, 2, 0)
-#    int_fwm.general_options(1e-13, 0, 1, 1)
-#    int_fwm.propagation_parameters(6, [0,18], 2, 1, 1)
-#    sim_wind = \
-#        sim_window(1e-12*c/l_vec, (l_vec[0]+l_vec[-1])*0.5,
-#                   (l_vec[0]+l_vec[-1])*0.5, int_fwm, 10)
-#    loss = Loss(int_fwm, sim_wind, amax=10)
-#    alpha_func = loss.atten_func_full(sim_wind.fv)
-#    int_fwm.alphadB = alpha_func
-#    int_fwm.alpha = int_fwm.alphadB
-#    betas_disp = dispersion_operator(Raman.betas, int_fwm, sim_wind)
-#
-#    #def test_dispersion(self):
-#        #"""
-#        #Compares the dispersion to a predetermined value.
-#        #Not a very good test, make sure that the other one in this class
-#        #passes. 
-#        #"""
-#      
-##        #with h5py.File('testing/testing_data/betas_test1.hdf5', 'r') as f:
-#        #    betas_exact = f.get('betas').value
-#
-#        #assert_allclose(self.betas_disp, betas_exact)
 
-#    def test_dispersion_same(self):
-#        #"""
-#        #Tests if the dispersion of the first two modes (degenerate) are the same. 
-#        #"""
-#        assert_allclose(self.betas_disp[:, 0, :], self.betas_disp[:, 1, :])
+    int_fwm = sim_parameters(2.5e-20, 2, 0)
+    int_fwm.general_options(1e-13, raman_object, 1, 'on')
+    int_fwm.propagation_parameters(10, 10, 1)
+    
+    fv, D_freq = fv_creator(1549,1555, 1550, int_fwm)
+    sim_wind = sim_window(fv, 1549e-9, 1.5508e-6, int_fwm)
+    
+    loss = Loss(int_fwm, sim_wind, amax=10)
+    alpha_func = loss.atten_func_full(sim_wind.fv)
+    int_fwm.alphadB = alpha_func
+    int_fwm.alpha = int_fwm.alphadB
+    betas = load_disp_paramters(sim_wind.w0)
+    Dop_large = dispersion_operator(betas, int_fwm, sim_wind)
+
+    def test_dispersion_not_same(self):
+        """
+        Asserts that the dispersion of the two modes is not the same. . 
+        """
+        assert_raises(AssertionError, assert_allclose,
+                     self.Dop_large[0, :], self.Dop_large[1, :])
+    def test_dispersion(self):
+        """
+        Compares the dispersion to a predetermined value.
+        Not a very good test, make sure that the other one in this class
+        passes. 
+        """
+        
+        with h5py.File('testing/testing_data/betas_test.hdf5', 'r') as f:
+            Dop_exact = f.get('Dop').value
+
+        assert_allclose(self.Dop_large, Dop_exact)
 
 
 def test_betap():
