@@ -138,9 +138,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1, cython = True, u = None):
     u[1,:,:], U[1,:,:] = pulse_propagation(u[0,:,:], U[0,:,:], int_fwm, M1, M2, Q_large,
                              sim_wind, hf, Dop, dAdzmm, gam_no_aeff)
 
-    #u[0,:, :] = u[0,:, :] * \
-    #    np.exp(1j*z/2)*np.exp(-1j*(sim_wind.woffset)*sim_wind.t)
-
+    """
     fig1 = plt.figure()
     plt.plot(sim_wind.fv,w2dbm(np.abs(U[0,0,:])**2))
     plt.plot(sim_wind.fv,w2dbm(np.abs(U[0,1,:])**2))
@@ -179,7 +177,7 @@ def pulse_propagations(ram, ss, nm, N_sol=1, cython = True, u = None):
     plt.plot(sim_wind.t,np.abs(u[0,1,:])**2 - np.abs(u[1,1,:])**2)
     plt.savefig('error2.png')
     plt.close()
-
+    """
     return u, U, maxerr
 
 "--------------------------------------------------------------------------"

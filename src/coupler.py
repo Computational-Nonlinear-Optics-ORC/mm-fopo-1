@@ -75,7 +75,6 @@ class Eigensolver(object):
     def solve_equation(self, equation, i):
         margin = 1e-15
         m = margin
-        #V_d = []
         s = []
         count = 8
         N_points = 2**count
@@ -212,7 +211,7 @@ class Modes(object):
 
     def E_abs2(self):
         Ex, Ey, Ez = self.E_carte()
-        return np.abs(Ex)**2 + np.abs(Ey)**2  # np.abs(E)**2
+        return np.abs(Ex)**2 + np.abs(Ey)**2
 
 
 class Coupling_coeff(Modes):
@@ -262,38 +261,71 @@ class Coupling_coeff(Modes):
             integrate(self.x, self.y, self.int1_vec)
 
 
-def create_coupling_coeff(lmin, lmax, N, a, N_points, d):
-    e = Eigensolver(lmin, lmax, N)
-    e.initialise_fibre(a)
-    u_01, w_01, neff01 = [np.zeros(N) for i in range(3)]
-    u_11, w_11, neff11 = [np.zeros([2, N]) for i in range(3)]
-    for i in range(N):
-        u_01[i], w_01[i], neff01[i] = e.solve_01(i)
-        u_11[:, i], w_11[:, i], neff11[:, i] = e.solve_11(i)
+class Coupling_coefficients(object):
+    def __init__(self, lmin, lmax, N, a, N_points, d_vec):
+        self.lmin = lmin
+        self.lmax = lmax
+        self.N = N  # number of frequency grid
+        self.a = a  # radius of the two fibres considered
+        self.N_points = N_points  # grid of the mode functions [X, Y]
+        # vector of the distance between the two fibres (to form coupler)
+        self.d_vec = d_vec
 
-    Eabs01, Eabs11 = [np.zeros([N, N_points, N_points]) for i in range(2)]
+    def fibre_calculate(self):
+        u, w = self.get_eigenvalues()
+        self.get_mode_functions(u, w)
+        return None
 
-    m01 = Modes(a, u_01, w_01, neff01, e.l_vec, N_points, 1)
-    m11 = Modes(a, u_01, w_01, neff01, e.l_vec, N_points, 0)
+    def get_eigenvalues(self):
+        """
+        Calculates the eigenvalues of the fibres considered.
+        """
+        e = Eigensolver(self.lmin, self.lmax, self.N)
+        e.initialise_fibre(self.a)
+        u_01, w_01, neff01 = [np.zeros(self.N) for i in range(3)]
+        u_11, w_11, neff11 = [np.zeros([2, self.N]) for i in range(3)]
+        for i in range(self.N):
+            u_01[i], w_01[i], neff01[i] = e.solve_01(i)
+            u_11[:, i], w_11[:, i], neff11[:, i] = e.solve_11(i)
+        self.e = e
+        self.neff = neff01, neff11
+        return (u_01, u_11), (w_01, w_11)
 
-    for i in range(N):
-        m01.wave_indexing(i)
-        m11.wave_indexing(i)
-        Eabs01[i, :, :] = m01.E_abs2()
-        Eabs11[i, :, :] = m11.E_abs2()
+    def get_mode_functions(self, u, w):
+        u_01, u_11 = u
+        w_01, w_11 = w
+        neff01, neff11 = self.neff
+        Eabs01, Eabs11 = [
+            np.zeros([self.N, self.N_points, self.N_points]) for i in range(2)]
+        print(u_01, u_11)
+        m01 = Modes(self.a, u_01, w_01, neff01, self.e.l_vec, self.N_points, 1)
+        m11 = Modes(self.a, u_11, w_11, neff11, self.e.l_vec, self.N_points, 0)
 
-    k01, k11 = [np.zeros(N) for i in range(2)]
-    couple01 = Coupling_coeff(a, N_points, e.ncore, e.nclad, e.l_vec, neff01)
-    couple11 = Coupling_coeff(a, N_points, e.ncore,
-                              e.nclad, e.l_vec, neff11[0, :])
-    couple01.initialise_integrand_vectors(d, Eabs01)
-    couple11.initialise_integrand_vectors(d, Eabs11)
+        for i in range(self.N):
+            m01.wave_indexing(i)
+            m11.wave_indexing(i)
+            Eabs01[i, :, :] = m01.E_abs2()
+            Eabs11[i, :, :] = m11.E_abs2()
 
-    k01 = couple01.f_vec * (pi / (neff01 * c)) * couple01.integrals()
-    k11 = couple11.f_vec * (pi / (neff11[0, :] * c)) * couple11.integrals()
-    #k01 =   couple01.integrals()
-    #k11 =   couple11.integrals()
-    return k01, k11, couple01
+        self.Eabs = Eabs01, Eabs11
+        return None
+
+    def create_coupling_coeff(self, d):
+        neff01, neff11 = self.neff
+        Eabs01, Eabs11 = self.Eabs
+
+        k01, k11 = [np.zeros(self.N) for i in range(2)]
+
+        couple01 = Coupling_coeff(
+            self.a, self.N_points, e.ncore, e.nclad, e.l_vec, neff01)
+        couple11 = Coupling_coeff(self.a, self.N_points, e.ncore,
+                                  e.nclad, e.l_vec, neff11[0, :])
+        couple01.initialise_integrand_vectors(d, Eabs01)
+        couple11.initialise_integrand_vectors(d, Eabs11)
+
+        k01 = couple01.f_vec * (pi / (neff01 * c)) * couple01.integrals()
+        k11 = couple11.f_vec * (pi / (neff11[0, :] * c)) * couple11.integrals()
+        return k01, k11, couple01, couple11
 
 
 def main():
@@ -302,20 +334,24 @@ def main():
     N_l = 10
     a = 5e-6
     N_points = 1024
-    d = 0.05e-6
+    d_vec = [0.05e-6]
+
+    couple_obj = Coupling_coefficients(lmin, lmax, N_l, a, N_points, d_vec)
+    couple_obj.fibre_calculate()
+    sys.exit()
 
     k01, k11, couple01 = create_coupling_coeff(lmin, lmax, N_l, a, N_points, d)
     fig = plt.figure()
-    plt.plot(couple01.l_vec*1e9, k01,'o-')
-    plt.plot(couple01.l_vec*1e9, k11,'o-')
+    plt.plot(couple01.l_vec*1e9, k01, 'o-')
+    plt.plot(couple01.l_vec*1e9, k11, 'o-')
     N_l = 2
     k01, k11, couple01 = create_coupling_coeff(lmin, lmax, N_l, a, N_points, d)
     fig = plt.figure()
-    plt.plot(couple01.l_vec*1e9, k01,'o-')
-    plt.plot(couple01.l_vec*1e9, k11,'o-')
+    plt.plot(couple01.l_vec*1e9, k01, 'o-')
+    plt.plot(couple01.l_vec*1e9, k11, 'o-')
     plt.show()
 
-    plt.plot(couple01.l_vec*1e9,k01/k11)
+    plt.plot(couple01.l_vec*1e9, k01/k11)
     plt.show()
     n1 = couple01.coupled_index(d)
     plt.contourf(1e6*couple01.X, 1e6*couple01.Y, n1[0, :, :])
