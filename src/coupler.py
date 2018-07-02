@@ -163,6 +163,14 @@ class Modes(object):
         r1_ind = np.where(r > self.a)
         temp = np.zeros(r.shape, dtype=np.complex128)
         r0, r1 = r[r0_ind], r[r1_ind]
+
+        print('lenghts')
+        print(self.u)
+        print(self.beta)
+        print(self.n)
+        print(r.shape)
+        print(self.a)
+        print(self.s)
         temp[r0_ind] = -1j * self.beta*self.a / \
             self.u*(0.5*(1 - self.s) * jv(self.n - 1, self.u * r0 / self.a)
                     - 0.5*(1 + self.s)*jv(self.n + 1, self.u * r0 / self.a))
@@ -273,6 +281,7 @@ class Coupling_coefficients(object):
 
     def fibre_calculate(self):
         u, w = self.get_eigenvalues()
+        print(len(u), len(w))
         self.get_mode_functions(u, w)
         return None
 
@@ -297,7 +306,7 @@ class Coupling_coefficients(object):
         neff01, neff11 = self.neff
         Eabs01, Eabs11 = [
             np.zeros([self.N, self.N_points, self.N_points]) for i in range(2)]
-        print(u_01, u_11)
+        print(len(u_01), len(u_11))
         m01 = Modes(self.a, u_01, w_01, neff01, self.e.l_vec, self.N_points, 1)
         m11 = Modes(self.a, u_11, w_11, neff11, self.e.l_vec, self.N_points, 0)
 
