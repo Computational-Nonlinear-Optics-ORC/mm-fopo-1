@@ -228,18 +228,21 @@ class Coupling_coeff(Modes):
         self.set_coordinates(self.a)
         self.neff = neff
 
-    def fibre_ref(self, d=-1):
+    def fibre_ref(self, d, keep = None):
         """
         Creates the refractive index of the fibre if d = -1 or
         creates the couplers seperated at a distance of d. 
         """
-        if d != -1:
-            R1 = ((self.X - (self.a + d/2))**2 + (self.Y)**2)**0.5
-            R2 = ((self.X + (self.a + d/2))**2 + (self.Y)**2)**0.5
-            rin = np.where(np.logical_or(R1 <= self.a, R2 <= self.a))
+
+        R1 = ((self.X - (self.a + d/2))**2 + (self.Y)**2)**0.5
+        R2 = ((self.X + (self.a + d/2))**2 + (self.Y)**2)**0.5
+        if keep == 'left':
+            rin = np.where(R2 <= self.a)
+        elif keep == 'right':    
+            rin = np.where(R1 <= self.a)
         else:
-            R = self.R
-            rin = np.where(R <= self.a)
+            rin = np.where(np.logical_or(R1 <= self.a, R2 <= self.a))
+           
         n0 = np.ones([len(self.l_vec), self.N_points, self.N_points])
         n0 = (self.nclad[:, np.newaxis].T*n0.T).T
         temp = np.zeros([self.N_points, self.N_points])
@@ -248,13 +251,12 @@ class Coupling_coeff(Modes):
             n0[i, :, :] += temp[:, :]
         return n0
 
-    def coupled_index(self, d):
-        return self.fibre_ref(d)
 
     def initialise_integrand_vectors(self, d, Eabs2):
         self.int1_vec = Eabs2
-        self.int2_vec = (self.coupled_index(d)**2 -
-                         self.fibre_ref()**2) * Eabs2
+        self.int2_vec = (self.fibre_ref(d)**2 - 
+                         self.fibre_ref(d, 'right')**2) \
+                          * Eabs2
         return None
 
     def integrals(self):
@@ -327,29 +329,82 @@ class Coupling_coefficients(object):
         return k01, k11, couple01, couple11
 
 
+def calculate_coupling_coeff(lmin,lmax, a, N_points,N_l, d_vec):
+
+    couple_obj = Coupling_coefficients(lmin, lmax, N_l, a, N_points)
+    couple_obj.fibre_calculate()
+    k01_1, k11_1, couple01_1, couple11_1 = couple_obj.create_coupling_coeff(d_vec[0])
+
+
+    k01_2, k11_2, couple01_2, couple11_2 = couple_obj.create_coupling_coeff(d_vec[1])
+
+    return k01_1, k11_1, couple01_1, couple11_1, \
+            k01_2, k11_2, couple01_2, couple11_2
+
 def main():
     lmin = 1546e-9
     lmax = 1555e-9
     N_l = 10
     a = 5e-6
     N_points = 1024
-    d_vec = [0.05e-6]
+    d_vec = [2e-6, 2e-6]
+    k01_1, k11_1, couple01_1, couple11_1, \
+            k01_2, k11_2, couple01_2, couple11_2 = \
+              calculate_coupling_coeff(lmin,lmax, a, N_points, N_l, d_vec)
 
-    couple_obj = Coupling_coefficients(lmin, lmax, N_l, a, N_points)
-    couple_obj.fibre_calculate()
-    k01, k11, couple01, couple11 = couple_obj.create_coupling_coeff(d_vec[0])
-
-    fig = plt.figure()
-    plt.plot(couple01.l_vec*1e9, k01, 'o-')
-    plt.plot(couple01.l_vec*1e9, k11, 'o-')
+    fig, axes = plt.subplots(2,2, sharex = True, sharey = True)
+    axes[0,0].plot(couple01_1.l_vec*1e9, k01_1, 'o-', label = 'LP01')
+    axes[0,0].plot(couple01_1.l_vec*1e9, k11_1, 'o-', label = 'LP11')
+    axes[1,0].plot(couple01_1.l_vec*1e9, k11_1/k01_1, 'o-', label = 'K11/K01')
 
 
-    plt.plot(couple01.l_vec*1e9, k01/k11)
+    axes[0,1].plot(couple01_1.l_vec*1e9, k01_2, 'o-', label = 'LP01')
+    axes[0,1].plot(couple01_1.l_vec*1e9, k11_2, 'o-', label = 'LP11')
+    axes[1,1].plot(couple01_1.l_vec*1e9, k11_2/k01_2, 'o-', label = 'K11/K01')
+    
+
+    axes[0,0].set_title('WDM1')
+    axes[0,1].set_title('WDM2')
+
+
+    axes[0,0].set_ylabel(r'$\kappa$')
+    axes[1,0].set_ylabel(r'$\kappa$')
+
+    axes[1,0].set_xlabel(r'$\lambda (\mu m)$')
+    axes[1,1].set_xlabel(r'$\lambda (\mu m)$')
     plt.show()
-    n1 = couple01.coupled_index(d_vec[0])
-    plt.contourf(1e6*couple01.X, 1e6*couple01.Y, n1[0, :, :])
-    plt.colorbar()
+
+
+
+    n1_WDM1 = couple01_1.fibre_ref(d_vec[0], 'right')
+    n0_WDM1 = couple01_1.fibre_ref(d_vec[0])   
+
+    n1_WDM2 = couple01_1.fibre_ref(d_vec[0], 'right')
+    n0_WDM2 = couple01_1.fibre_ref(d_vec[0])   
+
+    fig, axes = plt.subplots(2,2, sharex = True, sharey = True)
+    axes[0,0].contourf(1e6*couple01_1.X, 1e6*couple01_1.Y, n0_WDM1[0, :, :])
+    axes[1,0].contourf(1e6*couple01_1.X, 1e6*couple01_1.Y, n1_WDM1[0, :, :])
+
+
+    axes[0,1].contourf(1e6*couple01_1.X, 1e6*couple01_1.Y, n0_WDM2[0, :, :])
+    axes[1,1].contourf(1e6*couple01_1.X, 1e6*couple01_1.Y, n1_WDM2[0, :, :])
+    
+
+    axes[0,0].set_title('WDM1')
+    axes[0,1].set_title('WDM2')
+
+
+
+    axes[0,0].set_ylabel(r'$y( \mu m)$')
+    axes[1,0].set_ylabel(r'$y( \mu m)$')
+
+    axes[1,0].set_xlabel(r'$x( \mu m)$')
+    axes[1,1].set_xlabel(r'$x( \mu m)$')
     plt.show()
+
+
+
 
     #n1 = couple.coupled_index(1e-6)
     #plt.contourf(1e6*couple.X, 1e6*couple.Y, n1[0, :, :])

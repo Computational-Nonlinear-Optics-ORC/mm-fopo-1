@@ -286,16 +286,18 @@ class Loss(object):
 
 class WDM(object):
 
-    def __init__(self, x1, x2, fv, c, fopa=False, nm=1):
+    def __init__(self, l1, l2, fv, fopa=False, nm=1, with_resp = 'LP01'):
         """
         This class represents a 2x2 WDM coupler. The minimum and maximums are
         given and then the object represents the class with WDM_pass the calculation
         done.
         """
-        self.l1 = x1   # High part of port 1
-        self.l2 = x2  # Low wavelength of port 1
+        self.l1 = l1   # High part of port 1
+        self.l2 = l2  # Low wavelength of port 1
         self.f1 = 1e-3 * c / self.l1   # High part of port 1
         self.f2 = 1e-3 * c / self.l2  # Low wavelength of port 1
+        
+
         self.omega = 0.5*pi/np.abs(self.f1 - self.f2)
         self.phi = 2*pi - self.omega*self.f2
         self.fv = fv
@@ -312,6 +314,42 @@ class WDM(object):
         #if fopa:
         self.U_calc = self.U_calc_over
         return None
+
+
+    def load_coupling_coeff(self, filename = 'coupling_coeff.hdf5'):
+        """
+        Loads previousluy calculated coupling coefficients 
+        exported from main() in coupler.py.
+        """
+
+        return k01, k11
+
+
+    def require_coupler_length(self,k):
+        return (pi/2) /  abs(k(self.f1) - k(self.f2))
+
+    def get_req_WDM(self, with_resp = 'LP01'):
+
+        k01, k11 = self.load_coupling_coeff()
+
+
+        kinter_lp01 = interpolate.interp1d(self.f_vec, k01, kind = 'cubic')
+        kinter_lp11 = interpolate.interp1d(self.f_vec, k11, kind = 'cubic')
+        if self.with_resp == 'LP01':
+            coupling_distance = self.require_coupler_length(kinter_lp01)
+        else:
+            coupling_distance = self.require_coupler_length(kinter_lp11)        
+        self.A = set_SMR(coupling_distance, kinter_lp01,kinter_lp11)
+        return None
+    
+
+    def set_SMR(self, z, kinter_lp01, kinter_lp11):
+        A = []
+        for kinter in (kinter_lp01, kinter_lp11):
+            gv = kinter(self.fv) * z - kinter(self.f2)*z
+            A.append(np.array([[np.sin(gv), 1j * np.cos(gv)], [1j * np.cos(gv), np.sin(gv)]]))
+
+        return np.asanarray(A)
 
     def U_calc_over(self, U_in):
         return U_in
