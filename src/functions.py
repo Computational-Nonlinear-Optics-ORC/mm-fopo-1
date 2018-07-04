@@ -20,6 +20,7 @@ from scipy.fftpack import ifftshift
 phasor = np.vectorize(cmath.polar)
 from functools import wraps
 from step_index import Sidebands
+from scipy import interpolate
 # Pass through the @profile decorator if line profiler (kernprof) is not in use
 # Thanks Paul!!
 try:
@@ -286,7 +287,7 @@ class Loss(object):
 
 class WDM(object):
 
-    def __init__(self, l1, l2, fv, fopa=False, nm=1, with_resp = 'LP01'):
+    def __init__(self, l1, l2, fv, fopa=False, with_resp = 'LP01'):
         """
         This class represents a 2x2 WDM coupler. The minimum and maximums are
         given and then the object represents the class with WDM_pass the calculation
@@ -294,74 +295,75 @@ class WDM(object):
         """
         self.l1 = l1   # High part of port 1
         self.l2 = l2  # Low wavelength of port 1
-        self.f1 = 1e-3 * c / self.l1   # High part of port 1
-        self.f2 = 1e-3 * c / self.l2  # Low wavelength of port 1
-        
+        self.f1 = 1e9 * c / self.l1   # High part of port 1
+        self.f2 = 1e9 * c / self.l2  # Low wavelength of port 1
+        self.fv = fv*1e12
+        self.with_resp = with_resp
+        self.get_req_WDM()
 
-        self.omega = 0.5*pi/np.abs(self.f1 - self.f2)
-        self.phi = 2*pi - self.omega*self.f2
-        self.fv = fv
-        self.fv_wdm = self.omega*fv+self.phi
-
-        nt = len(self.fv)
-        shape = (nm, nt)
-        eps = np.sin(self.fv_wdm)
-        eps2 = 1j*np.cos(self.fv_wdm)
-        eps = np.tile(eps, (nm, 1))
-        eps2 = np.tile(eps2, (nm, 1))
-        self.A = np.array([[eps, eps2],
-                           [eps2, eps]])
-        #if fopa:
-        self.U_calc = self.U_calc_over
+        if fopa:
+            self.U_calc = self.U_calc_over
         return None
 
 
-    def load_coupling_coeff(self, filename = 'coupling_coeff.hdf5'):
+    def load_coupling_coeff(self,filepath='loading_data/', filename = 'coupling_coeff'):
         """
         Loads previousluy calculated coupling coefficients 
         exported from main() in coupler.py.
         """
-
-        return k01, k11
+        with h5py.File(filepath+filename+'.hdf5', 'r') as f:
+            D = {}
+            for i in f.keys():
+                D[str(i)] = f.get(str(i)).value
+        if self.with_resp == 'LP01':
+            k01, k11 = D['k01_1'],D['k11_1']
+        else:
+            k01, k11 = D['k01_2'],D['k11_2']
+        fmeas = D['f_meas']
+        return k01, k11, fmeas
 
 
     def require_coupler_length(self,k):
         return (pi/2) /  abs(k(self.f1) - k(self.f2))
 
-    def get_req_WDM(self, with_resp = 'LP01'):
+    def get_req_WDM(self):
 
-        k01, k11 = self.load_coupling_coeff()
+        k01, k11, fmeas = self.load_coupling_coeff()
 
-
-        kinter_lp01 = interpolate.interp1d(self.f_vec, k01, kind = 'cubic')
-        kinter_lp11 = interpolate.interp1d(self.f_vec, k11, kind = 'cubic')
+        kinter_lp01 = interpolate.interp1d(fmeas, k01, kind = 'cubic')
+        kinter_lp11 = interpolate.interp1d(fmeas, k11, kind = 'cubic')
         if self.with_resp == 'LP01':
             coupling_distance = self.require_coupler_length(kinter_lp01)
         else:
             coupling_distance = self.require_coupler_length(kinter_lp11)        
-        self.A = set_SMR(coupling_distance, kinter_lp01,kinter_lp11)
+        self.A = self.set_SMR(coupling_distance, kinter_lp01,kinter_lp11)
         return None
     
 
     def set_SMR(self, z, kinter_lp01, kinter_lp11):
-        A = []
-        for kinter in (kinter_lp01, kinter_lp11):
-            gv = kinter(self.fv) * z - kinter(self.f2)*z
-            A.append(np.array([[np.sin(gv), 1j * np.cos(gv)], [1j * np.cos(gv), np.sin(gv)]]))
+        """
+        Returns the scattering matrix. in form
+        [nm, (port1-3, port 1-4), (port2-3, port 2-4), nt]
+        """
 
-        return np.asanarray(A)
+        A = np.empty([2,2,2,len(self.fv)], dtype = np.complex128)
+        for i,kinter in enumerate((kinter_lp01, kinter_lp11)):
+            gv = kinter(self.fv) * z - kinter(self.f2)*z
+            A[:,:,i,:] = np.array([[np.sin(gv), 1j * np.cos(gv)],
+                             [1j * np.cos(gv), np.sin(gv)]])
+
+        return np.asarray(A)
 
     def U_calc_over(self, U_in):
         return U_in
 
     def U_calc(self, U_in):
         """
-        Uses the array defined in __init__ to calculate 
-        the outputed amplitude in arbitary units
-
+        Uses the SMR  
+        the outputed amplitude
         """
 
-        Uout = (self.A[0, 0] * U_in[0] + self.A[0, 1] * U_in[1],)
+        Uout =  (self.A[0, 0] * U_in[0] + self.A[0, 1] * U_in[1],)
         Uout += (self.A[1, 0] * U_in[0] + self.A[1, 1] * U_in[1],)
 
         return Uout
@@ -378,59 +380,41 @@ class WDM(object):
             u_out += (ifft(fftshift(UU, axes=-1)),)
         return ((u_out[0], U_out[0]), (u_out[1], U_out[1]))
 
-    def il_port1(self, fv_sp=None):
-        """
-        For visualisation of the wdm loss of port 1.
-        If no input is given then it is plottedin the freequency 
-        vector that the function is defined by. You can however 
-        give an input in wavelength.
-        """
-        if fv_sp is None:
-            return (np.sin(self.omega*self.fv+self.phi))**2
-        else:
-            return (np.sin(self.omega*(1e-3*c/fv_sp)+self.phi))**2
-
-    def il_port2(self, fv_sp=None):
-        """
-        Like il_port1 but with cosine (oposite)
-        """
-        if fv_sp is None:
-            return (np.cos(self.omega*self.fv+self.phi))**2
-        else:
-            return (np.cos(self.omega*(1e-3*c/fv_sp) + self.phi))**2
-
-    def plot(self, filename=False, xlim=False):
-        fig = plt.figure()
-        plt.plot(1e-3*c/self.fv, self.il_port1(), label="%0.2f" %
+    def plot(self, filename=False):
+        print(c)
+        fig, ax = plt.subplots(2,1, sharex = True, figsize = (10,8))
+        ax[0].plot(1e9*c/self.fv, np.abs(self.A[0,0, 0,:])**2, label="%0.2f" %
                  (self.l1) + ' nm port')
-        plt.plot(1e-3*c/self.fv, self.il_port2(), label="%0.1f" %
+        ax[0].plot(1e9*c/self.fv, np.abs(self.A[1,0, 0,:])**2, label="%0.1f" %
                  (self.l2) + ' nm port')
-        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)
-        plt.xlabel(r'$\lambda (n m)$')
-        plt.ylabel('Power Ratio')
-        if xlim:
-            plt.xlim(xlim)
+        
+        ax[1].plot(1e9*c/self.fv, np.abs(self.A[0,0, 1,:])**2, label="%0.2f" %
+                 (self.l1) + ' nm port')
+        ax[1].plot(1e9*c/self.fv, np.abs(self.A[1,0, 1,:])**2, label="%0.1f" %
+                 (self.l2) + ' nm port')
+        
+        ax[0].plot([self.l2, self.l2], [0, 1])
+        ax[0].plot([self.l1, self.l1], [0, 1])
+        ax[1].plot([self.l2, self.l2], [0, 1])
+        ax[1].plot([self.l1, self.l1], [0, 1])
+
+
+
+        ax[0].set_title('LP01')
+        ax[1].set_title('LP11')
+
+        ax[1].set_xlabel(r'$\lambda (nm)$')
+
+
+        ax[0].set_ylabel('Power Ratio')
+
+        ax[1].set_ylabel('Power Ratio')
+
+
+        ax[0].legend(loc='upper center', bbox_to_anchor=(0.5, 1.35), ncol=2)
+  
         if filename:
             plt.savefig(filename+'.png')
-        else:
-            plt.show()
-        plt.close(fig)
-        return None
-
-    def plot_dB(self, lamda, filename=False):
-        fig = plt.figure()
-        plt.plot(lamda, 10*np.log10(self.il_port1(lamda)),
-                 label="%0.2f" % (self.l1*1e9) + ' nm port')
-        plt.plot(lamda, 10*np.log10(self.il_port2(lamda)),
-                 label="%0.2f" % (self.l2*1e9) + ' nm port')
-        plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.13), ncol=2)
-        plt.xlabel(r'$\lambda (\mu m)$')
-        plt.ylabel(r'$Insertion loss (dB)$')
-        plt.ylim(-60, 0)
-        if filename:
-
-            plt.savefig('output/WDMs&loss/WDM_dB_high_' +
-                        str(self.l1)+'_low_'+str(self.l2)+'.png')
         else:
             plt.show()
         plt.close(fig)

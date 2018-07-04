@@ -95,7 +95,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
 
         # pass through WDM2 port 2 continues and port 1 is out of the loop
         noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
-        (out1, out2), (u[:, :], U[:, :]) = WDM_vec[1].pass_through(
+        (u[:, :], U[:, :]),(out1, out2) = WDM_vec[1].pass_through(
             (U[:, :], noise_new), sim_wind)
 
         ex.exporter(index, int_fwm, sim_wind, u, U, D_param, -1, ro,  mode_names, master_index,
@@ -182,23 +182,16 @@ def formulate(index, n2, gama, alphadB, P_p1, P_p2, P_s, spl_losses,
     "--------------------------------------------------------"
 
     "----------------------Formulate WDMS--------------------"
-    if WDMS_pars == 'signal_locked':
+    WDM_vec = [WDM(i[0], i[1], sim_wind.fv, fopa,with_resp)
+               for i, with_resp in zip(WDMS_pars, ('LP01', 'LP11'))]  # WDM up downs in wavelengths [m]
 
-        Omega = 2*pi*c/(lamp*1e-9) - 2*pi*c/(lams*1e-9)
-        omegai = 2*pi*c/(lamp*1e-9) + Omega
-        lami = 1e9*2*pi*c/(omegai)
-        WDMS_pars = ([lamp, lams],  # WDM up downs in wavelengths [m]
-                     [lami, lams],
-                     [lami, lamp],
-                     [lami, lams])
-
-    WDM_vec = [WDM(i[0], i[1], sim_wind.fv, c, fopa,nm)
-               for i in WDMS_pars]  # WDM up downs in wavelengths [m]
-
+    #WDM_vec[0].plot('1')
+    #WDM_vec[1].plot('2')
+    #sys.exit()
     "--------------------------------------------------------"
 
     "----------------------Formulate splicers--------------------"
-    splicers_vec = [Splicer(fopa = fopa,loss=i) for i in spl_losses]
+    splicers_vec = [Splicer(fopa = fopa, loss=i) for i in spl_losses]
     "------------------------------------------------------------"
 
     D_param = {**D_freq, **{'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s}} 
@@ -247,13 +240,13 @@ def main():
     z = 1000                                 # Length of the fibre
     P_p1 = 1
     P_p2 = 1
-    P_s = 1e-3
+    P_s = 1#1e-3
     spl_losses = [0, 0, 1.4]
 
 
     lamda_c = 1.5508e-6
-    WDMS_pars = ([1050., 1392.85],
-                 [1747.585,  1392.85])  # WDM up downs in wavelengths [m]
+    WDMS_pars = ([1549., 1550.],
+                 [1555,  1556.])  # WDM up downs in wavelengths [m]
     
     lamp1 = 1549
     lamp2 = [1555]
