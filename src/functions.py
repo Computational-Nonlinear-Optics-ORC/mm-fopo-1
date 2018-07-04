@@ -381,7 +381,6 @@ class WDM(object):
         return ((u_out[0], U_out[0]), (u_out[1], U_out[1]))
 
     def plot(self, filename=False):
-        print(c)
         fig, ax = plt.subplots(2,1, sharex = True, figsize = (10,8))
         ax[0].plot(1e9*c/self.fv, np.abs(self.A[0,0, 0,:])**2, label="%0.2f" %
                  (self.l1) + ' nm port')
