@@ -36,7 +36,7 @@ def configuration(parent_package='',top_path=None):
     pdir = dirname(__file__)
     wdir = join(pdir, 'src')
     mkl_info = get_info('mkl')
-    libs = mkl_info.get('libraries', ['mkl_rt'])
+    libs = mkl_info.get('libraries', ['mkl_rt', 'mkl'])
 
     try:
         from Cython.Build import cythonize

@@ -2,7 +2,11 @@
 from __future__ import division, print_function
 import sys
 import os
-from cython_files.cython_integrand import *
+try:
+    from cython_files.cython_integrand import *
+except ModuleNotFoundError:
+    print('Warning, cython was not able to complile')
+    pass
 import numpy as np
 from scipy.constants import pi, c
 from scipy.io import loadmat
@@ -21,7 +25,8 @@ phasor = np.vectorize(cmath.polar)
 from functools import wraps
 from step_index import Sidebands
 from scipy import interpolate
-# Pass through the @profile decorator if line profiler (kernprof) is not in use
+# Pass through the @profile decorator if 
+#line profiler (kernprof) is not in use
 # Thanks Paul!!
 try:
     builtins.profile

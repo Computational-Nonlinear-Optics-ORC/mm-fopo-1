@@ -3,7 +3,11 @@ from scipy.constants import pi
 from numpy.fft import fftshift
 from scipy.fftpack import fft, ifft
 from six.moves import builtins
-from cython_files.cython_integrand import *
+try:
+    from cython_files.cython_integrand import *
+except ModuleNotFoundError:
+    print('Warning, cython was not able to complile')
+    pass
 import sys
 assert_allclose = np.testing.assert_allclose
 import numba
