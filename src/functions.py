@@ -15,15 +15,12 @@ from scipy.integrate import simps
 from math import factorial
 from integrand_and_rk import *
 from data_plotters_animators import *
-from step_index import fibre_creator
-from step_index_functions import save_variables_step
 import cmath
 from time import time
 from scipy.fftpack import fft, ifft
 from scipy.fftpack import ifftshift
 phasor = np.vectorize(cmath.polar)
 from functools import wraps
-from step_index import Sidebands
 from scipy import interpolate
 # Pass through the @profile decorator if 
 #line profiler (kernprof) is not in use
