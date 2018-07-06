@@ -9,11 +9,10 @@ from scipy import special
 
 def test_bessel():
     assert_allclose(coupler.jv_(0,0), 0.)
-    assert np.isinf(coupler.kv_(0,0))
+    assert np.isnan(coupler.kv_(0,0))
 
 class Test_eigensolver:
     e = coupler.Eigensolver(1549e-9, 1555e-9, 10)
-    #e = Eigensolver(1549e-9, 1555e-9, 10)
     e.initialise_fibre(5e-6)
 
 
