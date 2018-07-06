@@ -353,7 +353,8 @@ class WDM(object):
             gv = kinter(self.fv) * z - kinter(self.f2)*z
             A[:,:,i,:] = np.array([[np.sin(gv), 1j * np.cos(gv)],
                              [1j * np.cos(gv), np.sin(gv)]])
-
+            print(gv.shape)
+            sys.exit()
         return np.asarray(A)
 
     def U_calc_over(self, U_in):
@@ -420,6 +421,33 @@ class WDM(object):
             plt.show()
         plt.close(fig)
         return None
+
+
+class Perc_WDM(WDM):
+    def __init__(self, wave_vec, perc_vec, fv, fopa=False):
+        """
+        Wave_vec and perc_vec are the waves and percentage of transmitance
+        of those waves from port 1 to 3. The order of the waves is from left
+        to right in the usual wavelength domain.
+        """
+        self.fv = fv
+        self.wave_vec_idx = wave_vec
+        self.perc_vec = [i * 0.01 for i in perc_vec]
+        self.get_req_WDM()
+        self.l1, self.l2 = 0, 0
+
+    def get_req_WDM(self):
+
+        k1 = np.zeros([2,2,len(self.fv)])
+        k2 = np.ones(k1.shape)
+        for i, j in zip(self.wave_vec_idx,self.perc_vec):
+            k1[:,:,i] = j
+            k1[:,:,i] -= j
+        k1 = k1**0.5
+        k2 = k2**0.5
+        self.A = np.array([[k1, 1j *k2], [1j *k2, k1]])
+        return None
+
 
 
 def create_file_structure(kk=''):
