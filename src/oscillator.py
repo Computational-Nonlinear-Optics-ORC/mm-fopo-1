@@ -188,8 +188,6 @@ def formulate(index, n2, gama, alphadB, P_p1, P_p2, P_s, spl_losses,
         WDM_vec = [Perc_WDM(D_freq['where'], i, sim_wind.fv, fopa)
                    for i in WDMS_pars[:-1]]  # WDM up downs in wavelengths [m]
 
-    WDM_vec[0].plot('1')
-    WDM_vec[1].plot('2')
 
     "--------------------------------------------------------"
 

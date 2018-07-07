@@ -353,8 +353,7 @@ class WDM(object):
             gv = kinter(self.fv) * z - kinter(self.f2)*z
             A[:,:,i,:] = np.array([[np.sin(gv), 1j * np.cos(gv)],
                              [1j * np.cos(gv), np.sin(gv)]])
-            print(gv.shape)
-            sys.exit()
+
         return np.asarray(A)
 
     def U_calc_over(self, U_in):
@@ -385,14 +384,14 @@ class WDM(object):
 
     def plot(self, filename=False):
         fig, ax = plt.subplots(2,1, sharex = True, figsize = (10,8))
-        ax[0].plot(1e9*c/self.fv, np.abs(self.A[0,0, 0,:])**2, label="%0.2f" %
+        ax[0].plot(1e9*c/self.fv, np.abs(self.A[0,0, 0,:])**2,'o-', label="%0.2f" %
                  (self.l1) + ' nm port')
-        ax[0].plot(1e9*c/self.fv, np.abs(self.A[1,0, 0,:])**2, label="%0.1f" %
+        ax[0].plot(1e9*c/self.fv, np.abs(self.A[1,0, 0,:])**2, 'x-',label="%0.1f" %
                  (self.l2) + ' nm port')
         
-        ax[1].plot(1e9*c/self.fv, np.abs(self.A[0,0, 1,:])**2, label="%0.2f" %
+        ax[1].plot(1e9*c/self.fv, np.abs(self.A[0,0, 1,:])**2,'o-', label="%0.2f" %
                  (self.l1) + ' nm port')
-        ax[1].plot(1e9*c/self.fv, np.abs(self.A[1,0, 1,:])**2, label="%0.1f" %
+        ax[1].plot(1e9*c/self.fv, np.abs(self.A[1,0, 1,:])**2,'x-', label="%0.1f" %
                  (self.l2) + ' nm port')
         
         ax[0].plot([self.l2, self.l2], [0, 1])
@@ -430,24 +429,56 @@ class Perc_WDM(WDM):
         of those waves from port 1 to 3. The order of the waves is from left
         to right in the usual wavelength domain.
         """
-        self.fv = fv
+        self.fv = fv*1e12
+        fmed = 0.5 * (fv[0] + fv[-1])
         self.wave_vec_idx = wave_vec
         self.perc_vec = [i * 0.01 for i in perc_vec]
         self.get_req_WDM()
-        self.l1, self.l2 = 0, 0
+        self.l1, self.l2 = [1e-3*c/fmed for i in range(2)]
 
     def get_req_WDM(self):
 
-        k1 = np.zeros([2,2,len(self.fv)])
+        k1 = np.zeros([2,len(self.fv)])
         k2 = np.ones(k1.shape)
         for i, j in zip(self.wave_vec_idx,self.perc_vec):
-            k1[:,:,i] = j
-            k1[:,:,i] -= j
+            k1[:,i] = j
+            k2[:,i] -= j
         k1 = k1**0.5
         k2 = k2**0.5
         self.A = np.array([[k1, 1j *k2], [1j *k2, k1]])
         return None
+    def plot(self, filename=False):
+        fig, ax = plt.subplots(2,1, sharex = True, figsize = (10,8))
+        ax[0].plot(1e9*c/self.fv, np.abs(self.A[0,0, 0,:])**2,'o-', label="%0.2f" %
+                 (self.l1) + ' nm port')
+        ax[0].plot(1e9*c/self.fv, np.abs(self.A[1,0, 0,:])**2, 'x-',label="%0.1f" %
+                 (self.l2) + ' nm port')
+        
+        ax[1].plot(1e9*c/self.fv, np.abs(self.A[0,0, 1,:])**2,'o-', label="%0.2f" %
+                 (self.l1) + ' nm port')
+        ax[1].plot(1e9*c/self.fv, np.abs(self.A[1,0, 1,:])**2,'x-', label="%0.1f" %
+                 (self.l2) + ' nm port')
+        
 
+        ax[0].set_title('LP01')
+        ax[1].set_title('LP11')
+
+        ax[1].set_xlabel(r'$\lambda (nm)$')
+
+
+        ax[0].set_ylabel('Power Ratio')
+
+        ax[1].set_ylabel('Power Ratio')
+
+
+        ax[0].legend(loc='upper center', bbox_to_anchor=(0.5, 1.35), ncol=2)
+  
+        if filename:
+            plt.savefig(filename+'.png')
+        else:
+            plt.show()
+        plt.close(fig)
+        return None
 
 
 def create_file_structure(kk=''):
