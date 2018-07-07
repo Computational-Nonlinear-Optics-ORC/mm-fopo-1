@@ -2,6 +2,8 @@
 import numpy as np
 cimport numpy as np
 
+cdef extern from "complex.h":
+    double complex cexp(double complex z)
 
 ctypedef double complex complex128_t
 cdef double fr = 0.18
@@ -25,13 +27,13 @@ cpdef np.ndarray[complex128_t, ndim=2] dAdzmm_ron_s1_cython(complex128_t[:, ::1]
         for j in range(shape2):
             M3[i, j] = u0[M2[0, i], j]*u0_conj[M2[1, i], j]
 
-    cdef complex128_t[:, ::1] M4 = fft(M3)
+    cdef complex128_t[:, ::1] M4 = cyfft(M3)
 
     for i in range(shapeM2):
         for j in range(shape2):
             M4[i, j] = M4[i, j] * hf[i, j]
-    M4 = ifft(M4)
-    M4 = fftshift(M4)
+    M4 = cyifft(M4)
+    M4 = cyfftshift(M4)
 
 
     dt = 3 * fr * dt 
@@ -45,13 +47,13 @@ cpdef np.ndarray[complex128_t, ndim=2] dAdzmm_ron_s1_cython(complex128_t[:, ::1]
                 * (Q_comp[i] * M3[M1[4, i], j] +
                    dt*Q[0, i]*M4[M1[4, i], j])
 
-    cdef complex128_t[:, ::1] M5 = fft(N)
+    cdef complex128_t[:, ::1] M5 = cyfft(N)
 
     for i in range(shape1):
         for j in range(shape2):
             M5[i, j] = w_tiled[i, j] * M5[i, j]
 
-    M5 = ifft(M5)
+    M5 = cyifft(M5)
 
     for i in range(shape1):
         for j in range(shape2):
@@ -75,13 +77,13 @@ cpdef np.ndarray[complex128_t, ndim=2] dAdzmm_ron_s0_cython(complex128_t[:, ::1]
         for j in range(shape2):
             M3[i, j] = u0[M2[0, i], j]*u0_conj[M2[1, i], j]
 
-    cdef complex128_t[:, ::1] M4 = fft(M3)
+    cdef complex128_t[:, ::1] M4 = cyfft(M3)
     for i in range(shapeM2):
         for j in range(shape2):
             M4[i, j] = M4[i, j] * hf[i, j]
 
-    M4 = ifft(M4)
-    M4 = fftshift(M4)
+    M4 = cyifft(M4)
+    M4 = cyfftshift(M4)
 
     cdef complex128_t[::1] Q_comp = np.empty(shapeM1, dtype='complex_')
     dt = 3 * fr * dt 
@@ -157,20 +159,20 @@ cpdef np.ndarray[complex128_t, ndim=2] dAdzmm_roff_s1_cython(complex128_t[:, ::1
             N[M1[0, i], j] = N[M1[0, i], j] + u0[M1[1, i], j]\
                 * (Q_comp[i] * M3[M1[4, i], j])
 
-    cdef complex128_t[:, ::1] M5 = fft(N)
+    cdef complex128_t[:, ::1] M5 = cyfft(N)
 
     for i in range(shape1):
         for j in range(shape2):
             M5[i, j] = w_tiled[i, j] * M5[i, j]
 
-    M5 = ifft(M5)
+    M5 = cyifft(M5)
 
     for i in range(shape1):
         for j in range(shape2):
             N[i, j] = gam_no_aeff * (N[i, j] + tsh * M5[i, j])
     return np.asarray(N)
 
-cdef complex128_t[:, ::1] fftshift(complex128_t[:, ::1] A):
+cpdef complex128_t[:, ::1] cyfftshift(complex128_t[:, ::1] A):
     """
     FFTshift of memoryview written in Cython for Cython. Only
     works for even number of elements in the -1 axis. 
@@ -193,6 +195,14 @@ cdef complex128_t[:, ::1] fftshift(complex128_t[:, ::1] A):
             k = k +1
     return B
 
+cpdef complex128_t[:,::1] cyexp(complex128_t[:,::1] A):
+    cdef int shape1 = A.shape[0]
+    cdef int shape2 = A.shape[1]
+    cdef int i, j
+    for i in range(shape1):
+        for j in range(shape2):
+            A[i,j] = cexp(A[i,j])
+    return A
 ########################Intel-MKL part##############################
 # Copyright (c) 2017, Intel Corporation
 #
@@ -263,7 +273,7 @@ cdef np.ndarray __allocate_result(np.ndarray x_arr, int f_type):
     return f_arr
 
 
-cdef np.ndarray[complex128_t, ndim= 2] fft(complex128_t[:, ::1] x_arr):
+cpdef np.ndarray[complex128_t, ndim= 2] cyfft(complex128_t[:, ::1] x_arr):
     """
     Uses MKL to perform 1D FFT on the input array x along the given axis.
     """
@@ -275,7 +285,7 @@ cdef np.ndarray[complex128_t, ndim= 2] fft(complex128_t[:, ::1] x_arr):
 
     return f_arr
 
-cdef np.ndarray[complex128_t, ndim= 2] ifft(complex128_t[:, ::1] x_arr):
+cpdef np.ndarray[complex128_t, ndim= 2] cyifft(complex128_t[:, ::1] x_arr):
     """
     Uses MKL to perform 1D iFFT on the input array x along the given axis.
     """

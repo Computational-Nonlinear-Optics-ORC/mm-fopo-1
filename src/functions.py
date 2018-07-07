@@ -2,11 +2,14 @@
 from __future__ import division, print_function
 import sys
 import os
+
 try:
     from cython_files.cython_integrand import *
 except ModuleNotFoundError:
     print('Warning, cython was not able to complile')
     pass
+from numpy.fft import fftshift
+from scipy.fftpack import fft, ifft
 import numpy as np
 from scipy.constants import pi, c
 from scipy.io import loadmat
@@ -566,8 +569,8 @@ class Noise(object):
         self.noise = self.noise_func(int_fwm)
         noise_freq = fftshift(fft(self.noise), axes=-1)
         return noise_freq
-
-
+import numexpr as ne
+#20.606
 @profile
 def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
                       Dop, dAdzmm, gam_no_aeff):
@@ -579,11 +582,13 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
     u1 = u[:, :]
     dz = int_fwm.dz * 1
     exitt = False
+    Dop /= 2
     while not(exitt):
         # trick to do the first iteration
         delta = 2*int_fwm.maxerr
         while delta > int_fwm.maxerr:
-            u1new = ifft(np.exp(Dop*dz/2)*fft(u1))
+            di = cyexp(Dop * dz)
+            u1new = cyifft(di*cyfft(u1))
             A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, sim_wind.tsh,
                               sim_wind.dt, hf, sim_wind.w_tiled, gam_no_aeff)
             if (delta > int_fwm.maxerr):
@@ -591,7 +596,8 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
                 dz *= Safety*(int_fwm.maxerr/delta)**0.25
         ###############Successful step###############
         # propagate the remaining half step
-        u1 = ifft(np.exp(Dop*dz/2)*fft(A))
+        di = cyexp(Dop * dz)
+        u1 = np.asarray(cyifft(di*cyfft(A)))
         dztot += dz
         # update the propagated distance
         if delta == 0:

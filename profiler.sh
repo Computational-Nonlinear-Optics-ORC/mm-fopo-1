@@ -11,5 +11,5 @@ cython -a cython_integrand.pyx
 python setup.py build_ext --inplace
 cd ../..
 
-kernprof -l -v src/main_oscillator.py single 2 1 1
+kernprof -l -v src/oscillator.py single 2 1 1
 rm main_oscillator.py.lprof
