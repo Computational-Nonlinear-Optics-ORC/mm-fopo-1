@@ -49,6 +49,11 @@ class Conversion_efficiency(object):
 
         self.U_in, self.U_out = self.load_spectrum(possition,filename, filepath)
 
+        if type(last) is float:
+            self.last = int(last* self.U_out.shape[1])
+        else:
+            self.last = last
+
 
         self.f_waves  = [self.fv[i] for i in self.where]
 
@@ -71,7 +76,7 @@ class Conversion_efficiency(object):
         
         for i in range(self.U_large_norm.shape[0]):
             self.U_large_norm[i,:,:] =\
-                    w2dbm(np.abs(self.U_out[i,:,:])**2) - w2dbm(P_p1)
+                    w2dbm(np.abs(self.U_out[i,:,:])**2)- np.max(w2dbm(np.abs(self.U_in[0,:])**2))
 
 
 
@@ -109,18 +114,18 @@ class Conversion_efficiency(object):
 
         self.P_out_vec = P_out_vec
 
-
+        
         #for l, la in enumerate(last):
         D_now = {}
         D_now['L'] = self.L
-        D_now['P_out'] = np.mean(self.P_out_vec[:,-last::], axis = 1)
+        D_now['P_out'] = np.mean(self.P_out_vec[:,-self.last::], axis = 1)
         
 
         D_now['CE'] = 100*D_now['P_out']/ self.P_signal_in
-        
-        D_now['P_out_std'] = np.std(self.P_out_vec[:,-last::], axis = 1)
 
-        D_now['CE_std'] = np.std(self.P_out_vec[:,-last::] / self.P_signal_in, axis = 1)
+        D_now['P_out_std'] = np.std(self.P_out_vec[:,-self.last::], axis = 1)
+
+        D_now['CE_std'] = np.std(self.P_out_vec[:,-self.last::] / self.P_signal_in, axis = 1)
 
         D_now['rin'] = 10*np.log10(self.time_trip*D_now['P_out_std']**2 / D_now['P_out']**2)
         D_now['input_powers'] = self.input_powers
@@ -227,8 +232,10 @@ class Conversion_efficiency(object):
         plt.grid()
         plt.xlabel(r'$f (THz)$')
         plt.ylabel(r'Spec (dB)')
+        plt.ylim([-200,1])
+        plt.xlim([192, 194.5])
         plt.savefig(filename+'.png', bbox_inches = 'tight')
-        
+
 
         data = (x, y)
         with open(filename+str(ii)+'.pickle','wb') as f:
@@ -270,13 +277,21 @@ def read_CE_table(x_key,y_key ,filename, std = False):
               D['f_pc'], D['f_p2'],\
                         D['f_bs'] =\
                         [[D['frequencies'][i][j] for i in range(len(D['frequencies']))] for j in range(6)]
+    
+    D['l_mi'], D['l_p1'], D['l_s'],\
+              D['l_pc'], D['l_p2'],\
+                        D['l_bs'] =\
+                        [[1e-3*c/D['frequencies'][i][j] for i in range(len(D['frequencies']))] for j in range(6)]
+    
+
     D['CE_mi'], D['CE_p1'], D['CE_s'],\
               D['CE_pc'], D['CE_p2'],\
                         D['CE_bs'] =\
                         [[D['CE'][i][j] for i in range(len(D['CE']))] for j in range(6)]
+    
     D['CEstd_mi'], D['CEstd_p1'], D['CEstd_s'],\
           D['CEstd_pc'], D['CEstd_p2'],\
-                    D['CE_bs'] =\
+                    D['CEstd_bs'] =\
                     [[D['CE_std'][i][j] for i in range(len(D['CE_std']))] for j in range(6)]
 
 
@@ -449,7 +464,7 @@ for pos in ('2', '4'):
 
         for i in inside_vec[int(ii)]:
             print(ii,i)
-            CE = Conversion_efficiency(freq_band_HW = 0.1,possition = pos,last = 500,\
+            CE = Conversion_efficiency(freq_band_HW = 0.05,possition = pos,last = 0.5,\
                 safety = 2, filename = 'data_large',\
                 filepath = which+'/output'+str(i)+'/data/',filepath2 = 'output_final/'+str(ii)+'/pos'+str(pos)+'/')
 
