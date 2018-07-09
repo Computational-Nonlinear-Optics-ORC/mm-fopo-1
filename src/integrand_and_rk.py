@@ -46,8 +46,8 @@ def RK45CK(dAdzmm, u1, dz, M1, M2,Q, tsh, dt, hf, w_tiled, gam_no_aeff):
     order and a 4th order integration
     """
     A1 = dz*dAdzmm(u1,u1.conj(), M1, M2, Q, tsh, dt, hf, w_tiled, gam_no_aeff)
+    
     u2 = A2_temp(u1, A1)
-
     A2 = dz*dAdzmm(u2,u2.conj(), M1, M2, Q, tsh, dt, hf, w_tiled, gam_no_aeff)
     
     u3 = A3_temp(u1, A1,A2)

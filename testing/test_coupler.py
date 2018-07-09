@@ -9,7 +9,7 @@ from scipy import special
 
 def test_bessel():
     assert_allclose(coupler.jv_(0,0), 0.)
-    assert np.isnan(coupler.kv_(0,0))
+    assert not(np.isfinite(coupler.kv_(0,0)))
 
 class Test_eigensolver:
     e = coupler.Eigensolver(1549e-9, 1555e-9, 10)

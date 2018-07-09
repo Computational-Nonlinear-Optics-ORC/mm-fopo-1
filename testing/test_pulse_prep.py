@@ -206,7 +206,7 @@ class Test_dispersion(Raman):
 
     def test_dispersion_not_same(self):
         """
-        Asserts that the dispersion of the two modes is not the same. . 
+        Asserts that the dispersion of the two modes is not the same. 
         """
         assert_raises(AssertionError, assert_allclose,
                      self.Dop_large[0, :], self.Dop_large[1, :])
@@ -216,7 +216,6 @@ class Test_dispersion(Raman):
         Not a very good test, make sure that the other one in this class
         passes. 
         """
-        
         with h5py.File('testing/testing_data/betas_test.hdf5', 'r') as f:
             Dop_exact = f.get('Dop').value
 

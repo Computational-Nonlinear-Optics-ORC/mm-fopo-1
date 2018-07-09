@@ -456,8 +456,8 @@ for pos in ('2', '4'):
             fmin,fmax,rounds  = 310,330,2000#np.min(CE.fv),np.max(CE.fv),None
             fmin,fmax,rounds = None,None, None
 
-            if CE.U_large_norm.shape[0]>1:
-                contor_plot(CE,fmin,fmax,rounds,folder = 'output_final/'+str(ii)+'/pos'+pos+'/spectra/',filename= str(ii)+'_'+str(i))
+            #if CE.U_large_norm.shape[0]>1:
+            #    contor_plot(CE,fmin,fmax,rounds,folder = 'output_final/'+str(ii)+'/pos'+pos+'/spectra/',filename= str(ii)+'_'+str(i))
             #contor_plot_time(CE, rounds = None,filename = 'output_final/'+str(ii)+'/pos'+pos+'/'+'time_'+str(ii)+'_'+str(i))
             CE.P_out_round(CE.P_out_vec,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/powers/', filesave =str(ii)+'_'+str(i))
             CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(i),wavelengths = wavelengths)

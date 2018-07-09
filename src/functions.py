@@ -587,7 +587,7 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
         # trick to do the first iteration
         delta = 2*int_fwm.maxerr
         while delta > int_fwm.maxerr:
-            di = cyexp(Dop * dz)
+            di = cyexp(Dop*dz)
             u1new = cyifft(di*cyfft(u1))
             A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, sim_wind.tsh,
                               sim_wind.dt, hf, sim_wind.w_tiled, gam_no_aeff)
@@ -596,7 +596,7 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
                 dz *= Safety*(int_fwm.maxerr/delta)**0.25
         ###############Successful step###############
         # propagate the remaining half step
-        di = cyexp(Dop * dz)
+        di = np.exp(Dop * dz)
         u1 = np.asarray(cyifft(di*cyfft(A)))
         dztot += dz
         # update the propagated distance
@@ -629,21 +629,25 @@ def fv_creator(lamp1,lamp2, lams, int_fwm):
     input is approximated as close as posible to
     the asked value because of the grid.  
     """
+    nt_between_pumps = 2**(int_fwm.N - 3)
+
     fp1, fp2, fs = [1e-3 * c /i for i in (lamp1, lamp2, lams)]
     
-    fv1 = np.linspace(fp2, fp1, int_fwm.nt//2)
+    fv1 = np.linspace(fp2, fp1, nt_between_pumps)
 
     df = abs(fv1[1] - fv1[0])
 
     fv0 = [fv1[0] - df]
     fv2 = [fv1[-1] + df]
     
-    for i in range(1,int_fwm.nt//4 ):
+    rest = int(2**int_fwm.N - nt_between_pumps)
+
+    for i in range(1,rest//2):
         fv0.append(fv0[i - 1] - df)
         fv2.append(fv2[i - 1] + df)
 
     fv0 = fv0[::-1]
-        
+    
     fv = np.concatenate((fv0, fv1, fv2))
     check_ft_grid(fv, df)
 
