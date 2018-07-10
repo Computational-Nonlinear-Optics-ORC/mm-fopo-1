@@ -132,7 +132,7 @@ def formulate(index, n2, gama, alphadB, P_p1, P_p2, P_s, spl_losses,
     int_fwm = sim_parameters(n2, nm, alphadB)
     int_fwm.general_options(maxerr, raman_object, ss, ram)
     int_fwm.propagation_parameters(N, z, dz_less)
-    lamda = 1.5508e-6  # central wavelength of the grid[m]
+    lamda = lamp1*1e-9  # central wavelength of the grid[m]
     "---------------------Grid&window-----------------------"
     fv, D_freq = fv_creator(lamp1,lamp2, lams, int_fwm)
     sim_wind = sim_window(fv, lamda, lamda_c, int_fwm)
@@ -209,7 +209,7 @@ def main():
     # Number of computing cores for sweep
     num_cores = arguments_determine(1)
     # maximum tolerable error per step in integration
-    maxerr = 1e-13
+    maxerr = 1e-14
     ss = 1                                  # includes self steepening term
     ram = 'on'                              # Raman contribution 'on' if yes and 'off' if no
     if arguments_determine(-1) == 0:
@@ -238,10 +238,10 @@ def main():
     n2 = 2.5e-20                            # Nonlinear index [m/W]
     gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
-    z = 100                                 # Length of the fibre
-    P_p1 = 1
-    P_p2 = 1
-    P_s = 2e-3#1e-3
+    z = 1000                                 # Length of the fibre
+    P_p1 = dbm2w(30.5 - 3)
+    P_p2 = dbm2w(30.5 - 3)
+    P_s = dbm2w(30.5 - 3 - 24)#1e-3#1e-3
     spl_losses = [0, 0, 1.]
 
 
@@ -256,8 +256,8 @@ def main():
 
 
     lamp1 = 1549
-    lamp2 = [1555]
-    lams = np.linspace(1549, 1555, 129, endpoint= None)
+    lamp2 = [1553.25]
+    lams = np.linspace(1549, 1549+1.5, 129, endpoint= None)
     lams = lams[1:]
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB,
                'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,

@@ -44,6 +44,10 @@ class Conversion_efficiency(object):
 
         P_p1, P_p2, P_s, self.fv, self.lv,self.t, self.where, self.L = self.load_input_param(filepath)
         
+
+        if freq_band_HW is 'df':
+            freq_band_HW = 2* (self.fv[1] - self.fv[0])
+
         self.input_powers = (P_p1, P_p2, P_s)
 
 
@@ -188,7 +192,7 @@ class Conversion_efficiency(object):
         input_data = (self.input_powers[0], self.input_powers[1], self.input_powers[2]*1e3,
                                             self.lam_waves[1], self.lam_waves[2], self.lam_waves[4])
         self.title_string = unstr_str.format(*input_data)
-        input_data_str = ('P_1', 'P_2', 'P_s', 'l1', 'l2', 'ls')
+        input_data_str = ('P_1', 'P_2', 'P_s', 'l1', 'ls', 'l2')
         self._data ={i:j for i, j in zip(input_data_str,input_data)}
         return None
 
@@ -312,7 +316,7 @@ def read_CE_table(x_key,y_key ,filename, std = False):
 
 
     x = D[x_key]
-    y = D[y_key]
+    y = w2dbm(np.asarray(D[y_key])) - 0.0022387211385683395
 
     if std:
         try:
@@ -443,7 +447,7 @@ wavelengths = [1200,1400,1050,930,800]
 
 
 os.system('rm -r output_final ; mkdir output_final')
-for pos in ('2', '4'):
+for pos in ('2',):
 
     for ii in outside_vec:
         ii = str(ii)
@@ -464,7 +468,7 @@ for pos in ('2', '4'):
 
         for i in inside_vec[int(ii)]:
             print(ii,i)
-            CE = Conversion_efficiency(freq_band_HW = 0.05,possition = pos,last = 0.5,\
+            CE = Conversion_efficiency(freq_band_HW = 'df',possition = pos,last = 0.5,\
                 safety = 2, filename = 'data_large',\
                 filepath = which+'/output'+str(i)+'/data/',filepath2 = 'output_final/'+str(ii)+'/pos'+str(pos)+'/')
 
@@ -478,8 +482,8 @@ for pos in ('2', '4'):
             CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(i),wavelengths = wavelengths)
             del CE
             gc.collect()
-        for x_key,y_key,std in (('f_s', 'P_out_bs',True), ('f_s', 'CE_bs',True), ('f_s', 'rin_bs',False),\
-                                ('f_s', 'P_out_pc',True), ('f_s', 'CE_pc',True), ('f_s', 'rin_pc',False)):
+        for x_key,y_key,std in (('l_s', 'P_out_bs',False), ('l_s', 'CE_bs',False), ('l_s', 'rin_bs',False),\
+                                ('l_s', 'P_out_pc',False), ('l_s', 'CE_pc',False), ('l_s', 'rin_pc',False)):
             plot_CE(x_key,y_key,std = std,filename = 'CE',\
                 filepath='output_final/'+str(ii)+'/pos'+pos+'/', filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many/'+y_key+str(ii))
         

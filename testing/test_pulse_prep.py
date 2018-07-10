@@ -210,22 +210,13 @@ class Test_dispersion(Raman):
         """
         assert_raises(AssertionError, assert_allclose,
                      self.Dop_large[0, :], self.Dop_large[1, :])
-    def test_dispersion(self):
-        """
-        Compares the dispersion to a predetermined value.
-        Not a very good test, make sure that the other one in this class
-        passes. 
-        """
-        with h5py.File('testing/testing_data/betas_test.hdf5', 'r') as f:
-            Dop_exact = f.get('Dop').value
-
-        assert_allclose(self.Dop_large, Dop_exact)
+    
 
 
 def test_betap():
     c_norm = c*1e-12
     lamda_c = 1.5508e-6
-    w0 = 1e-12 * 2 * pi * c / lamda_c
+    w0 =  2 * pi * c / lamda_c
     
 
     betap1 = load_disp_paramters(w0,lamda_c)
@@ -240,11 +231,11 @@ def test_betap():
 
 
     assert_allclose(betap1[0,:2], np.array([0,0])) 
-    assert betap1[1,1] == -9.80000000e-02
+    assert_allclose(betap1[1,1], 9.8e-02) 
     assert_allclose(betap1[:,2:], np.array([beta2, beta3]).T) 
 
 
-    w0 = 1e-12 * 2 * pi * c / 1.5598e-6
+    w0 =  2 * pi * c / 1.5598e-6
     betap2 = load_disp_paramters(w0,lamda_c = 1.5508e-6)
 
     assert not(np.allclose(betap1,betap2))

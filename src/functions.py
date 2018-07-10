@@ -210,8 +210,12 @@ class sim_parameters(object):
 class sim_window(object):
 
     def __init__(self, fv, lamda, lamda_c, int_fwm):
+
         self.fv = fv
         self.lamda = lamda
+        
+
+
         self.fmed = 0.5*(fv[-1] + fv[0])*1e12  # [Hz]
         self.deltaf = np.max(self.fv) - np.min(self.fv)  # [THz]
         self.df = self.deltaf/int_fwm.nt  # [THz]
@@ -227,6 +231,8 @@ class sim_window(object):
             range(int(-int_fwm.nt/2), 0, 1))/self.T
 
         self.lv = 1e-3*c/self.fv
+        print(fv)
+        print(self.w0)
 
 class Loss(object):
 
@@ -438,7 +444,11 @@ class Perc_WDM(WDM):
         self.perc_vec = [i * 0.01 for i in perc_vec]
         self.get_req_WDM()
         self.l1, self.l2 = [1e-3*c/fmed for i in range(2)]
-
+        if fopa:
+            self.U_calc = self.U_calc_over
+        return None
+    def U_calc_over(self, U_in):
+        return U_in
     def get_req_WDM(self):
 
         k1 = np.zeros([2,len(self.fv)])
@@ -741,7 +751,6 @@ class create_destroy(object):
 def dbeta00(lc, filepath='loading_data'):
 
     n = 1.444
-    #print(os.path.join('loading_data', 'widths.dat'))
     w0, w1 = np.loadtxt(os.path.join('loading_data', 'widths.dat'))[:2]
     beta0 = (2*pi*n/lc)*((1-lc**2/(pi**2 * n * w0**2)) **
                          0.5 - (1-2*lc**2/(pi**2 * n * w0**2))**0.5)
@@ -760,17 +769,21 @@ def load_disp_paramters(w0, lamda_c=1.5508e-6):
 
     D = np.array([19.4e6, 21.8e6])
     S = np.array([0.068e15, 0.063e15])
-    dbeta1 = -98e-3
+    dbeta1 = 98e-3
 
     beta2 = -D[:]*(lamda_c**2/(2*pi*c_norm))  # [ps**2/m]
     beta3 = lamda_c**4*S[:]/(4*(pi*c_norm)**2) + \
         lamda_c**3*D[:]/(2*(pi*c_norm)**2)  # [ps**3/m]
 
     wc = 2 * pi * c_norm / lamda_c
+    w0 *= 1e-12
 
+    print(dbeta1)
     dbeta1 += (beta2[0] - beta2[1]) * (w0 - wc) + \
-        (beta3[0] - beta3[1]) * (w0 - wc)**2
-
+        0.5*(beta3[0] - beta3[1]) * (w0 - wc)**2
+    print(dbeta1)
+    print((beta2[0] - beta2[1]) * (w0 - wc) + \
+        0.5*(beta3[0] - beta3[1]) * (w0 - wc)**2)
     for i in range(2):
         beta2[i] += beta3[i] * (w0 - wc)
 
@@ -792,7 +805,7 @@ def dispersion_operator(betas, int_fwm, sim_wind):
     Returns Dispersion operator
     """
 
-    w = sim_wind.w + sim_wind.woffset
+    w = sim_wind.w #+ sim_wind.woffset
 
     Dop = np.zeros((2, w.shape[0]), dtype=np.complex)
 
