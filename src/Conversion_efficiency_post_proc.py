@@ -185,14 +185,15 @@ class Conversion_efficiency(object):
     
 
     def input_data_formating(self):
-        unstr_str = r"$P_1=$ {0:.2f} W, $P_2=$ {1:.2f} W ,"+\
-        r"$P_s=$ {2:.2f} mW, "+\
-        r"$\lambda_1=$ {3:.2f} nm,  $\lambda_2=$ {4:.2f} nm,"+\
-        r"$\lambda_s=$ {5:.2f} nm,"
+        unstr_str = r"$P_1=$ {0:.2f} W, $P_s=$ {1:.2f} mW ,"+\
+        r"$P_2=$ {2:.2f} W, "+\
+        r"$\lambda_1=$ {3:.2f} nm, $\lambda_s=$ {4:.2f} nm, "+\
+        r"$\lambda_2=$ {5:.2f} nm,"
         input_data = (self.input_powers[0], self.input_powers[1], self.input_powers[2]*1e3,
                                             self.lam_waves[1], self.lam_waves[2], self.lam_waves[4])
+
         self.title_string = unstr_str.format(*input_data)
-        input_data_str = ('P_1', 'P_2', 'P_s', 'l1', 'ls', 'l2')
+        input_data_str = ('P_1', 'P_s', 'P_2', 'l1', 'ls', 'l2')
         self._data ={i:j for i, j in zip(input_data_str,input_data)}
         return None
 
@@ -232,7 +233,7 @@ class Conversion_efficiency(object):
         plt.legend(loc = 2)
 
 
-        plt.title(CE.title_string)
+        plt.title(self.title_string)
         plt.grid()
         plt.xlabel(r'$f (THz)$')
         plt.ylabel(r'Spec (dB)')
@@ -270,7 +271,7 @@ def plot_rin(var,var2 = 'rin',filename = 'CE', filepath='output_final/', filesav
 
     return None
 
-def read_CE_table(x_key,y_key ,filename, std = False):
+def read_CE_table(x_key,y_key ,filename, std = False, decibels = False):
     with open(filename+'.pickle','rb') as f:
         D = pl.load(f)
     
@@ -316,7 +317,10 @@ def read_CE_table(x_key,y_key ,filename, std = False):
 
 
     x = D[x_key]
-    y = w2dbm(np.asarray(D[y_key])) - 0.0022387211385683395
+    if y_key[:2] == 'CE' and decibels == True:
+        y = 10 * np.log10(np.asarray(D[y_key]))
+    else:
+        y = np.asarray(D[y_key])
 
     if std:
         try:
@@ -329,8 +333,8 @@ def read_CE_table(x_key,y_key ,filename, std = False):
     return x,y,err_bars
 
 
-def plot_CE(x_key,y_key,std = True,filename = 'CE', filepath='output_final/', filesave= None):
-    x, y, err_bars = read_CE_table(x_key,y_key,filepath+filename,std = False)
+def plot_CE(x_key,y_key,std = True, decibels = False,filename = 'CE', filepath='output_final/', filesave= None):
+    x, y, err_bars = read_CE_table(x_key,y_key,filepath+filename,decibels = decibels,std = std )
 
 
 
@@ -447,7 +451,7 @@ wavelengths = [1200,1400,1050,930,800]
 
 
 os.system('rm -r output_final ; mkdir output_final')
-for pos in ('2',):
+for pos in ('4', '2'):
 
     for ii in outside_vec:
         ii = str(ii)
@@ -482,9 +486,9 @@ for pos in ('2',):
             CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(i),wavelengths = wavelengths)
             del CE
             gc.collect()
-        for x_key,y_key,std in (('l_s', 'P_out_bs',False), ('l_s', 'CE_bs',False), ('l_s', 'rin_bs',False),\
-                                ('l_s', 'P_out_pc',False), ('l_s', 'CE_pc',False), ('l_s', 'rin_pc',False)):
-            plot_CE(x_key,y_key,std = std,filename = 'CE',\
+        for x_key,y_key,std, decibel in (('l_s', 'P_out_bs',False, False), ('l_s', 'CE_bs',False, True), ('l_s', 'rin_bs',False, False),\
+                                ('l_s', 'P_out_pc',False, False), ('l_s', 'CE_pc',False, True), ('l_s', 'rin_pc',False, False)):
+            plot_CE(x_key,y_key,std = std,decibels = decibel, filename = 'CE',\
                 filepath='output_final/'+str(ii)+'/pos'+pos+'/', filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many/'+y_key+str(ii))
         
     #os.system('rm -r prev_anim/*; mv animators* prev_anim')

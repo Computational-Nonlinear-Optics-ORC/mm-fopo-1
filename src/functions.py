@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import division, print_function
 import sys
 import os
-
 try:
     from cython_files.cython_integrand import *
 except ModuleNotFoundError:
@@ -231,8 +229,7 @@ class sim_window(object):
             range(int(-int_fwm.nt/2), 0, 1))/self.T
 
         self.lv = 1e-3*c/self.fv
-        print(fv)
-        print(self.w0)
+
 
 class Loss(object):
 
@@ -778,12 +775,9 @@ def load_disp_paramters(w0, lamda_c=1.5508e-6):
     wc = 2 * pi * c_norm / lamda_c
     w0 *= 1e-12
 
-    print(dbeta1)
     dbeta1 += (beta2[0] - beta2[1]) * (w0 - wc) + \
         0.5*(beta3[0] - beta3[1]) * (w0 - wc)**2
-    print(dbeta1)
-    print((beta2[0] - beta2[1]) * (w0 - wc) + \
-        0.5*(beta3[0] - beta3[1]) * (w0 - wc)**2)
+
     for i in range(2):
         beta2[i] += beta3[i] * (w0 - wc)
 

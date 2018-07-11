@@ -238,13 +238,11 @@ def main():
     n2 = 2.5e-20                            # Nonlinear index [m/W]
     gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
-    z = 1000                                 # Length of the fibre
+    z = 100                                 # Length of the fibre
     P_p1 = dbm2w(30.5 - 3)
     P_p2 = dbm2w(30.5 - 3)
-    P_s = dbm2w(30.5 - 3 - 24)#1e-3#1e-3
-    spl_losses = [0, 0, 1.]
-
-
+    P_s = 2*dbm2w(30.5 - 3 - 24)#1e-3#1e-3
+    spl_losses = [0, 0, 0.]
     lamda_c = 1.5508e-6
     WDMS_pars = ([1549., 1550.],
                  [1555,  1556.], 'WDM')  # WDM up downs in wavelengths [m]
@@ -257,7 +255,7 @@ def main():
 
     lamp1 = 1549
     lamp2 = [1553.25]
-    lams = np.linspace(1549, 1549+1.5, 129, endpoint= None)
+    lams = np.linspace(1549, 1553.25, 256, endpoint= None)
     lams = lams[1:]
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB,
                'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,
