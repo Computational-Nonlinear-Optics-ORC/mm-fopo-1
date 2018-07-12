@@ -444,8 +444,7 @@ class Perc_WDM(WDM):
         if fopa:
             self.U_calc = self.U_calc_over
         return None
-    def U_calc_over(self, U_in):
-        return U_in
+
     def get_req_WDM(self):
 
         k1 = np.zeros([2,len(self.fv)])
@@ -457,6 +456,7 @@ class Perc_WDM(WDM):
         k2 = k2**0.5
         self.A = np.array([[k1, 1j *k2], [1j *k2, k1]])
         return None
+
     def plot(self, filename=False):
         fig, ax = plt.subplots(2,1, sharex = True, figsize = (10,8))
         ax[0].plot(1e9*c/self.fv, np.abs(self.A[0,0, 0,:])**2,'o-', label="%0.2f" %
@@ -489,6 +489,47 @@ class Perc_WDM(WDM):
             plt.show()
         plt.close(fig)
         return None
+
+
+
+class Bandpass_WDM(Perc_WDM):
+    def __init__(self, wave_vec, perc_vec, fv, fopa=False):
+        """
+        Wave_vec and perc_vec are the waves and percentage of transmitance
+        of those waves from port 1 to 3. The order of the waves is from left
+        to right in the usual wavelength domain.
+        """
+        self.fv = fv*1e12
+        fmed = 0.5 * (fv[0] + fv[-1])
+        self.wave_vec_idx = wave_vec
+        self.perc_vec = [i * 0.01 for i in perc_vec]
+        self.get_req_WDM()
+        self.l1, self.l2 = [1e-3*c/fmed for i in range(2)]
+        if fopa:
+            self.U_calc = self.U_calc_over
+
+        return None
+
+
+
+    def get_req_WDM(self):
+        k1 = np.empty([2,len(self.fv)])
+        k2 = np.empty(k1.shape)
+
+        point_of_sep = self.wave_vec_idx[1] - 1
+        #point of step between the signal and pump
+        k1[0,:] = self.perc_vec[1] # LP01 percentage
+        k1[0,:point_of_sep] = self.perc_vec[2]
+        k1[1,:] = self.perc_vec[4] # second pump
+        k2[:,:] = 1 - k1[:,:]
+
+        k1 = k1**0.5
+        k2 = k2**0.5
+        self.A = np.array([[k1, 1j *k2], [1j *k2, k1]])
+        return None
+
+
+
 
 
 def create_file_structure(kk=''):

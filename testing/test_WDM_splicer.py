@@ -160,3 +160,58 @@ class Test_perc_1m():
 
     def test1m_WDM_time(self):
         assert_allclose(self.u_in_tot, self.u_out_tot, rtol=1e-05)
+
+
+class Test_bandpass_1m():
+    lamp1 = 1549
+    lamp2 = 1555
+    lams = 1550
+    N = 18
+    nt = 2**N
+
+    int_fwm = sim_parameters(2.5e-20, 2, [0,0])
+    int_fwm.general_options(1e-15, 1, 1, 'on')
+    int_fwm.propagation_parameters(N, 10, 100)
+    fv, D_freq = fv_creator(lamp1,lamp2, lams, int_fwm)
+    sim_wind = sim_window(fv, lamp1*1e-9, 1.5508e-6, int_fwm)
+    
+
+    perc = 100 * np.random.rand(len(D_freq['where']))
+
+    print(perc)
+
+    WDMS = Bandpass_WDM(D_freq['where'], perc, fv, 'false')
+
+
+    U1 = 100*(np.random.randn(2, nt) +
+              1j * np.random.randn(2, nt))
+    U2 = 100 * (np.random.randn(2, nt) +
+                1j * np.random.randn(2, nt))
+    U_in = (U1, U2)
+    U_in_tot = np.abs(U1)**2 + np.abs(U2)**2
+
+    u_in1 = ifft(fftshift(U1, axes = -1))
+    u_in2 = ifft(fftshift(U2, axes = -1))
+    
+
+
+
+    u_in_tot = simps(np.abs(u_in1)**2, sim_wind.t) + \
+        simps(np.abs(u_in2)**2, sim_wind.t)
+
+    a, b = WDMS.pass_through(U_in, sim_wind)
+
+    U_out1, U_out2 = a[1], b[1]
+    u_out1, u_out2 = a[0], b[0]
+
+    U_out_tot = np.abs(U_out1)**2 + np.abs(U_out2)**2
+
+    u_out_tot = simps(np.abs(u_out1)**2, sim_wind.t) + \
+        simps(np.abs(u_out2)**2, sim_wind.t)
+
+
+    def test1m_WDM_freq(self):
+        assert_allclose(self.U_in_tot, self.U_out_tot)
+
+    def test1m_WDM_time(self):
+        assert_allclose(self.u_in_tot, self.u_out_tot, rtol=1e-05)

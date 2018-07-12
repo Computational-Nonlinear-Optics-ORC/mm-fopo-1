@@ -187,7 +187,9 @@ def formulate(index, n2, gama, alphadB, P_p1, P_p2, P_s, spl_losses,
     elif WDMS_pars[-1] == 'prc':
         WDM_vec = [Perc_WDM(D_freq['where'], i, sim_wind.fv, fopa)
                    for i in WDMS_pars[:-1]]  # WDM up downs in wavelengths [m]
-
+    elif WDMS_pars[-1] == 'bandpass':
+        WDM_vec = [Bandpass_WDM(D_freq['where'], i, sim_wind.fv, fopa)
+                   for i in WDMS_pars[:-1]]  # WDM up downs in wavelengths [m]
 
     "--------------------------------------------------------"
 
@@ -217,7 +219,7 @@ def main():
                                             # make the system in to a FOPA
     else:
         fopa = False
-    plots = False                            # Do you want plots, be carefull it makes the code very slow!
+    plots = True                            # Do you want plots, be carefull it makes the code very slow!
     N = 12                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
@@ -241,7 +243,7 @@ def main():
     z = 100                                 # Length of the fibre
     P_p1 = dbm2w(30.5 - 3)
     P_p2 = dbm2w(30.5 - 3)
-    P_s = 2*dbm2w(30.5 - 3 - 24)#1e-3#1e-3
+    P_s = dbm2w(30.5 - 3 - 24)#1e-3#1e-3
     spl_losses = [0, 0, 0.]
     lamda_c = 1.5508e-6
     WDMS_pars = ([1549., 1550.],
@@ -250,12 +252,14 @@ def main():
     WDMS_pars = ([100, 100, 50, 0, 100, 0],
                  [100, 100, 100, 0, 100, 0], 'prc')  # WDM up downs in wavelengths [m]
     
-
+    WDMS_pars = ([100, 100, 50, 0, 100, 0],
+             [100, 100, 100, 0, 0, 0], 'bandpass')  # Bandpass filter system [m]
 
 
     lamp1 = 1549
-    lamp2 = [1553.25]
-    lams = np.linspace(1549, 1553.25, 256, endpoint= None)
+    lamp2 = [1553.25,1554, 1555]
+    lams = np.linspace(1549, 1555, 256, endpoint= None)
+    lams = [1550, 1551]
     lams = lams[1:]
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB,
                'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,

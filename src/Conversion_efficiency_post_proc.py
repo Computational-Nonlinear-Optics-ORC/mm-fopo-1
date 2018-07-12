@@ -185,11 +185,11 @@ class Conversion_efficiency(object):
     
 
     def input_data_formating(self):
-        unstr_str = r"$P_1=$ {0:.2f} W, $P_s=$ {1:.2f} mW ,"+\
+        unstr_str = r"$P_1=$ {0:.2f} W, $P_s=$ {1:.2f} mW, "+\
         r"$P_2=$ {2:.2f} W, "+\
         r"$\lambda_1=$ {3:.2f} nm, $\lambda_s=$ {4:.2f} nm, "+\
         r"$\lambda_2=$ {5:.2f} nm,"
-        input_data = (self.input_powers[0], self.input_powers[1], self.input_powers[2]*1e3,
+        input_data = (self.input_powers[0], self.input_powers[2]*1e3, self.input_powers[1],
                                             self.lam_waves[1], self.lam_waves[2], self.lam_waves[4])
 
         self.title_string = unstr_str.format(*input_data)
@@ -451,7 +451,7 @@ wavelengths = [1200,1400,1050,930,800]
 
 
 os.system('rm -r output_final ; mkdir output_final')
-for pos in ('4', '2'):
+for pos in ('2','4'):
 
     for ii in outside_vec:
         ii = str(ii)
