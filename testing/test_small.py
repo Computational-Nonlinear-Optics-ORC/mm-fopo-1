@@ -77,9 +77,9 @@ def test3_w2dbm():
 
 def test_load_fibre_param():
     os.system('rm loading_data/M1_M2_new_2m.hdf5')
-    M1_,M2_,Q_ = overlaps.fibre_overlaps_loader()
+    M1_,M2_,Q_ = overlaps.fibre_overlaps_loader(1)
 
-    M1, M2,Q = overlaps.fibre_overlaps_loader()
+    M1, M2,Q = overlaps.fibre_overlaps_loader(1)
     assert_allclose(M1, np.array([[0, 0, 0, 0, 1, 1, 1, 1],
                                      [0, 0, 1, 1, 0, 0, 1, 1],
                                      [0, 1, 0, 1, 0, 1, 0, 1],
@@ -90,4 +90,3 @@ def test_load_fibre_param():
     assert_allclose(M1,M1_)
     assert_allclose(M2, M2_)
     assert_allclose(Q, Q_)
-    assert_allclose(Q[0,:], Q[1,:])

@@ -617,14 +617,10 @@ class Noise(object):
         self.noise = self.noise_func(int_fwm)
         noise_freq = fftshift(fft(self.noise), axes=-1)
         return noise_freq
-import numexpr as ne
-#20.606
+"""
 @profile
 def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
                       Dop, dAdzmm, gam_no_aeff):
-    """Pulse propagation part of the code. We use the split-step fourier method
-       with a modified step using the RK45 algorithm. 
-    """
     dztot = 0  # total distance traveled
     Safety = 0.95
     u1 = u[:, :]
@@ -668,7 +664,7 @@ def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
     U = fftshift(fft(u), axes=-1)
     int_fwm.dz = dz*1
     return u, U
-
+"""
 
 def fv_creator(lamp1,lamp2, lams, int_fwm):
     """
@@ -677,7 +673,7 @@ def fv_creator(lamp1,lamp2, lams, int_fwm):
     input is approximated as close as posible to
     the asked value because of the grid.  
     """
-    nt_between_pumps = 2**(int_fwm.N - 3)
+    nt_between_pumps = 2**(int_fwm.N - 4)
 
     fp1, fp2, fs = [1e-3 * c /i for i in (lamp1, lamp2, lams)]
     
