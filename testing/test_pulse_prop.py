@@ -5,6 +5,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 from overlaps import *
 from integrand_and_rk import *
+from cython_files.cython_integrand import *
 def inputs(nm = 2):
     n2 = 2.5e-20                                # n2 for silica [m/W]
     # 0.0011666666666666668             # loss [dB/m]
@@ -255,3 +256,36 @@ class Test_cython():
         assert_allclose(N1, N2)
     
     
+def test_half_disp():
+
+    dz = np.random.randn()
+    shape1 = 2
+    shape2 = 2**12
+    u1 = np.random.randn(shape1, shape2) + 1j * np.random.randn(shape1, shape2)
+    u1 *= 10
+    Dop = np.random.randn(shape1, shape2) + 1j * np.random.randn(shape1, shape2)
+    
+    u_python = np.fft.ifft(np.exp(Dop*dz/2) * np.fft.fft(u1))
+    u_cython = half_disp_step(u1, Dop/2, dz, shape1, shape2)
+
+
+    assert_allclose(np.asarray(u_cython), u_python)
+
+
+def test_cython_norm():
+    shape1 = 2
+    shape2 = 2**12
+    A = np.random.randn(shape1, shape2) + 1j * np.random.randn(shape1, shape2)
+
+    cython_norm = norm(A,shape1,shape2)
+    python_norm = np.linalg.norm(A,2, axis = -1).max()
+    assert_allclose(cython_norm, python_norm)
+
+def test_fftishit():
+    shape1 = 2
+    shape2 = 2**12
+    A = np.random.randn(shape1, shape2) + 1j * np.random.randn(shape1, shape2)
+
+    cython_shift = np.asarray(cyfftshift(A))
+    python_shift = np.fft.fftshift(A, axes = -1)
+    assert_allclose(cython_shift, python_shift)

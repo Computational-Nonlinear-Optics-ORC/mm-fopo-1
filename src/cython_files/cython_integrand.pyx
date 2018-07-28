@@ -3,7 +3,7 @@ import numpy as np
 cimport numpy as np
 
 cdef extern from "complex.h":
-    double complex exp(double complex)
+    double complex cexp(double complex)
     double cabs(double complex)
 
 ctypedef double complex complex128_t
@@ -14,7 +14,7 @@ ctypedef double double_t
 cpdef complex128_t[:, ::1] dAdzmm(complex128_t[:, ::1] u0,
                                             np.ndarray[unsigned int, ndim=2] M1, np.ndarray[unsigned int, ndim = 2] M2,
                                             double[:, ::1] Q, double tsh, complex128_t[:, ::1] hf,
-                                            double[:, ::1] w_tiled, complex128_t gam_no_aeff, double dz):
+                                            double[:, ::1] w_tiled, complex128_t gam_no_aeff):
     cdef int shape1 = u0.shape[0]
     cdef long shape2 = u0.shape[1]
     cdef int shapeM2 = M2.shape[1]
@@ -43,7 +43,6 @@ cpdef complex128_t[:, ::1] dAdzmm(complex128_t[:, ::1] u0,
             N[M1[0, i], j] = N[M1[0, i], j] + u0[M1[1, i], j]\
                 * (Q[1,i] * M3[M1[4, i], j] +
                    Q[0, i]*M4[M1[4, i], j])
-
     cdef complex128_t[:, ::1] M5 = cyfft(N)
 
     for i in range(shape1):
@@ -165,7 +164,6 @@ cpdef complex128_t[:, ::1] dAdzmm_roff_s1_cython(complex128_t[:, ::1] u0,
 ############################################ Pulse_prop ############################################
 
 cdef double Safety = 0.95
-
 cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double maxerr,
                         np.ndarray[unsigned int, ndim=2] M1, np.ndarray[unsigned int, ndim=2] M2,
                         double[:, ::1] Q, double[:, ::1] w_tiled,double tsh, complex128_t[:, ::1] hf,
@@ -174,7 +172,7 @@ cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double
 
     """Pulse propagation"""
 
-    cdef double dztot = 0  # total distance traveled
+    cdef double dztot = 0.  # total distance traveled
     cdef int shape1 = u1.shape[0]
     cdef long shape2 = u1.shape[1]
 
@@ -183,7 +181,7 @@ cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double
     cdef complex128_t[:,::1] A = np.empty([shape1,shape2], dtype='complex_')
     cdef double_t[::1] delta = np.empty(1, dtype = 'double')
     cdef int exitt = 0
-    cdef double  temp
+    cdef double  temp, temp2, 
 
 
     while exitt == 0:
@@ -191,43 +189,45 @@ cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double
         delta[0] = 2*maxerr
         while delta[0] > maxerr:
             u1new = half_disp_step(u1, Dop, dz, shape1, shape2)
+
             A = RK45CK(delta, u1new, M1, M2, Q, tsh, hf,
                     w_tiled, gam_no_aeff, dz, shape1, shape2)
 
             if (delta[0] > maxerr):
                 # calculate the step (shorter) to redo
                 dz = dz * Safety*(maxerr/delta[0])**0.25
+
+
         #############Successful step###############
         u1 = half_disp_step(A, Dop, dz, shape1,shape2)
-
         dztot = dztot + dz
-        dz = Safety*dzstep
-        if delta[0] != 0:
+
+        if (delta[0] == 0):
+            dz = Safety*dzstep
+        else:
             temp = Safety*dz*(maxerr/delta[0])**0.2
-            if temp < dz:
-                dz = temp
+            temp2 = Safety*dzstep
+            dz = min(temp, temp2)
         ###################################################################
         temp = dztot + dz
-        if dztot == dzstep:
+        if (dztot == dzstep):
             exitt = 1
-        elif temp >= dzstep:
+        elif (temp >= dzstep):
             dz = dzstep - dztot
-
         ###################################################################
     U = cyfft(u1)
     U = cyfftshift(U)
     return np.asarray(U), dz
 
 
-cdef complex128_t[:,::1] half_disp_step(complex128_t[:,::1] u, complex128_t[:,::1] Dop, double dz, int shape1, int shape2):
+cpdef complex128_t[:,::1] half_disp_step(complex128_t[:,::1] u, complex128_t[:,::1] Dop, double dz, int shape1, long shape2):
     #np.fft.ifft(np.exp(Dop*dz/2) * np.fft.fft(u1))
     cdef complex128_t[:,::1] temp1 = np.empty([shape1,shape2], dtype='complex_')
     cdef complex128_t[:,::1] temp2 = np.empty([shape1,shape2], dtype='complex_')
     cdef int i, j
-    cdef double dztemp = dz/2
     for i in range(shape1):
         for j in range(shape2):
-            temp1[i,j] = exp(Dop[i,j] * dztemp)
+            temp1[i,j] = cexp(Dop[i,j] * dz)
     temp2 = cyfft(u)
     for i in range(shape1):
         for j in range(shape2):
@@ -240,7 +240,7 @@ cdef complex128_t[:,::1] half_disp_step(complex128_t[:,::1] u, complex128_t[:,::
 cdef complex128_t[:,::1] RK45CK(double_t[::1] delta, complex128_t[:, ::1] u1, np.ndarray[unsigned int, ndim=2] M1,
                                 np.ndarray[unsigned int, ndim = 2] M2, double[:, ::1] Q, double tsh,
                                 complex128_t[:, ::1] hf,double[:, ::1] w_tiled, complex128_t gam_no_aeff, double dz,
-                                int  shape1, int shape2):
+                                int  shape1, long shape2):
     """
     Propagates the nonlinear operator for 1 step using a 5th order Runge
     Kutta method
@@ -257,31 +257,39 @@ cdef complex128_t[:,::1] RK45CK(double_t[::1] delta, complex128_t[:, ::1] u1, np
 
 
 
-    cdef complex128_t[:,::1] A1 = dAdzmm(u1, M1, M2, Q, tsh, hf, w_tiled,gama_temp, dz)
-    
+    cdef complex128_t[:,::1] A1 = dAdzmm(u1, M1, M2, Q, tsh, hf, w_tiled,gama_temp)
+
     cdef complex128_t[:,::1] u2 = A2_temp(u1, A1, shape1,shape2)
-    cdef complex128_t[:,::1] A2 = dAdzmm(u2, M1, M2, Q, tsh, hf, w_tiled,gama_temp, dz)
-    
+
+    cdef complex128_t[:,::1] A2 = dAdzmm(u2, M1, M2, Q, tsh, hf, w_tiled,gama_temp)
+
     cdef complex128_t[:,::1] u3 = A3_temp(u1, A1, A2, shape1,shape2)
-    cdef complex128_t[:,::1] A3 = dAdzmm(u3, M1, M2, Q, tsh, hf, w_tiled,gama_temp, dz)
+
+    cdef complex128_t[:,::1] A3 = dAdzmm(u3, M1, M2, Q, tsh, hf, w_tiled,gama_temp)
 
     cdef complex128_t[:,::1] u4 = A4_temp(u1, A1, A2, A3, shape1,shape2)
-    cdef complex128_t[:,::1] A4 = dAdzmm(u4, M1, M2, Q, tsh, hf, w_tiled,gama_temp, dz)
+
+    cdef complex128_t[:,::1] A4 = dAdzmm(u4, M1, M2, Q, tsh, hf, w_tiled,gama_temp)
 
     cdef complex128_t[:,::1] u5 = A5_temp(u1, A1, A2, A3, A4, shape1,shape2)
-    cdef complex128_t[:,::1] A5 = dAdzmm(u5, M1, M2, Q, tsh, hf, w_tiled,gama_temp, dz)
+
+    cdef complex128_t[:,::1] A5 = dAdzmm(u5, M1, M2, Q, tsh, hf, w_tiled,gama_temp)
 
     cdef complex128_t[:,::1] u6 = A6_temp(u1, A1, A2, A3, A4, A5, shape1,shape2)
-    cdef complex128_t[:,::1] A6 = dAdzmm(u6, M1, M2, Q, tsh, hf, w_tiled,gama_temp, dz)
+
+    cdef complex128_t[:,::1] A6 = dAdzmm(u6, M1, M2, Q, tsh, hf, w_tiled,gama_temp)
 
     A = A_temp(u1, A1, A3, A4, A6, shape1,shape2)  # Fifth order accuracy
+
     cdef complex128_t[:,::1] Afourth = Afourth_temp(u1, A1, A3, A4, A5, A6, A, shape1,shape2)  # Fourth order accuracy
 
     delta[0] = norm(Afourth, shape1,shape2)
+
+
     return A
 
 
-cdef complex128_t[:,::1] A2_temp(complex128_t[:,::1] u1, complex128_t[:,::1] A1, int shape1, int shape2):
+cdef complex128_t[:,::1] A2_temp(complex128_t[:,::1] u1, complex128_t[:,::1] A1, int shape1, long shape2):
     cdef complex128_t[:,::1] A = np.empty([shape1,shape2], dtype='complex_')
     cdef int i
     cdef long j
@@ -292,7 +300,7 @@ cdef complex128_t[:,::1] A2_temp(complex128_t[:,::1] u1, complex128_t[:,::1] A1,
 
 
 cdef complex128_t[:,::1] A3_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
-                                    complex128_t[:,::1] A2, int shape1, int shape2):
+                                    complex128_t[:,::1] A2, int shape1, long shape2):
 
     cdef int i
     cdef long j
@@ -306,7 +314,7 @@ cdef complex128_t[:,::1] A3_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
 
 cdef complex128_t[:,::1] A4_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
                                     complex128_t[:,::1] A2,complex128_t[:,::1] A3,
-                                    int shape1, int shape2):
+                                    int shape1, long shape2):
     cdef int i
     cdef long j
     cdef complex128_t[:,::1] A = np.empty([shape1,shape2], dtype='complex_')
@@ -318,7 +326,7 @@ cdef complex128_t[:,::1] A4_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
 
 cdef complex128_t[:,::1] A5_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
                                     complex128_t[:,::1] A2,complex128_t[:,::1] A3,
-                                    complex128_t[:,::1] A4, int shape1, int shape2):
+                                    complex128_t[:,::1] A4, int shape1, long shape2):
 
     cdef int i
     cdef long j
@@ -332,7 +340,7 @@ cdef complex128_t[:,::1] A5_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
 
 cdef complex128_t[:,::1] A6_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
                                 complex128_t[:,::1] A2,complex128_t[:,::1] A3,complex128_t[:,::1] A4,
-                                complex128_t[:,::1] A5, int shape1, int shape2):
+                                complex128_t[:,::1] A5, int shape1, long shape2):
     cdef int i
     cdef long j
     cdef complex128_t[:,::1] A = np.empty([shape1,shape2], dtype='complex_')
@@ -346,7 +354,7 @@ cdef complex128_t[:,::1] A6_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
 cdef complex128_t[:,::1] Afourth_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
                                         complex128_t[:,::1] A3,complex128_t[:,::1] A4,
                                         complex128_t[:,::1] A5,complex128_t[:,::1] A6,
-                                        complex128_t[:,::1] Afifth, int shape1, int shape2):
+                                        complex128_t[:,::1] Afifth, int shape1, long shape2):
     cdef int i
     cdef long j
     cdef complex128_t[:,::1] A = np.empty([shape1,shape2], dtype='complex_')
@@ -365,7 +373,7 @@ cdef complex128_t[:,::1] Afourth_temp(complex128_t[:,::1] u1,complex128_t[:,::1]
 
 cdef complex128_t[:,::1] A_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
                                  complex128_t[:,::1] A3,complex128_t[:,::1] A4,
-                                 complex128_t[:,::1] A6, int shape1, int shape2):
+                                 complex128_t[:,::1] A6, int shape1, long shape2):
     cdef int i
     cdef long j
     cdef complex128_t[:,::1] A = np.empty([shape1,shape2], dtype='complex_')
@@ -376,27 +384,25 @@ cdef complex128_t[:,::1] A_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
     return A
 ############################################ Suplementary ############################################
 
-cdef double_t norm(complex128_t[:,::1] A, int shape1, int shape2):
+cpdef double_t norm(complex128_t[:,::1] A, int shape1, long shape2):
 
     cdef int i
     cdef long j
-    cdef double[::1] sum1 = np.zeros([shape1], dtype='double')
+    cdef double[::1] sum1 = np.zeros(shape1, dtype='double')
     for i in range(shape1):
         for j in range(shape2):
             A[i,j] = cabs(A[i,j])**2
     for i in range(shape1):
         for j in range(shape2):
-            sum1[i] = <double>(sum1[i] + A[i,j])
+            sum1[i] = sum1[i] + <double>(A[i,j])
     for i in range(shape1):
         sum1[i] = sum1[i]**0.5
-    cdef double res = sum1[0]
-    for i in range(1, shape1):
-        if res < sum1[i]:
-            res = sum1[i]
+    cdef double res = max(sum1[0], sum1[1])
+
     return res
 
 
-cdef complex128_t[:, ::1] cyfftshift(complex128_t[:, ::1] A):
+cpdef complex128_t[:, ::1] cyfftshift(complex128_t[:, ::1] A):
     """
     FFTshift of memoryview written in Cython for Cython. Only
     works for even number of elements in the -1 axis. 

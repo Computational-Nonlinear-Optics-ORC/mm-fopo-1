@@ -138,12 +138,12 @@ def plot_multiple_modes(nm, x, y, which, mode_names, ylim, xlim, xlabel, ylabel,
     plt.ylim(ylim)
     plt.xlim(xlim)
     plt.legend(loc = 2)
-
+    plt.grid()
     ax = fig.add_subplot(111, frameon=False)
     ax.axes.get_xaxis().set_ticks([])
     ax.axes.get_yaxis().set_ticks([])
     ax.set_title(title)
-    plt.grid()
+
     ax.yaxis.set_label_coords(-0.05, 0.5)
     ax.xaxis.set_label_coords(0.5, -0.05)
     ax.set_xlabel(xlabel)
