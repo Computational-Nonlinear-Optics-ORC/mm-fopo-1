@@ -617,57 +617,6 @@ class Noise(object):
         self.noise = self.noise_func(int_fwm)
         noise_freq = fftshift(fft(self.noise), axes=-1)
         return noise_freq
-import numexpr as ne
-#20.606
-@profile
-def pulse_propagation(u, U, int_fwm, M1, M2, Q, sim_wind, hf,
-                      Dop, dAdzmm, gam_no_aeff):
-    """Pulse propagation part of the code. We use the split-step fourier method
-       with a modified step using the RK45 algorithm. 
-    """
-    dztot = 0  # total distance traveled
-    Safety = 0.95
-    u1 = u[:, :]
-    dz = int_fwm.dz * 1
-    exitt = False
-    Dop /= 2
-    while not(exitt):
-        # trick to do the first iteration
-        delta = 2*int_fwm.maxerr
-        while delta > int_fwm.maxerr:
-            di = cyexp(Dop*dz)
-            u1new = cyifft(di*cyfft(u1))
-            A, delta = RK45CK(dAdzmm, u1new, dz, M1, M2, Q, sim_wind.tsh,
-                              sim_wind.dt, hf, sim_wind.w_tiled, gam_no_aeff)
-            if (delta > int_fwm.maxerr):
-                # calculate the step (shorter) to redo
-                dz *= Safety*(int_fwm.maxerr/delta)**0.25
-        ###############Successful step###############
-        # propagate the remaining half step
-        di = np.exp(Dop * dz)
-        u1 = np.asarray(cyifft(di*cyfft(A)))
-        dztot += dz
-        # update the propagated distance
-        if delta == 0:
-            dz = Safety*int_fwm.z
-        else:
-            try:
-                dz = np.min(
-                    [Safety*dz*(int_fwm.maxerr/delta)**0.2,
-                     Safety*int_fwm.z])
-            except RuntimeWarning:
-                dz = Safety*int_fwm.z
-        ###################################################################
-
-        if dztot == (int_fwm.z):
-            exitt = True
-        elif ((dztot + dz) >= int_fwm.z):
-            dz = int_fwm.z - dztot
-        ###################################################################
-    u = u1
-    U = fftshift(fft(u), axes=-1)
-    int_fwm.dz = dz*1
-    return u, U
 
 
 def fv_creator(lamp1,lamp2, lams, int_fwm):
@@ -677,7 +626,7 @@ def fv_creator(lamp1,lamp2, lams, int_fwm):
     input is approximated as close as posible to
     the asked value because of the grid.  
     """
-    nt_between_pumps = 2**(int_fwm.N - 3)
+    nt_between_pumps = 2**(int_fwm.N - 4)
 
     fp1, fp2, fs = [1e-3 * c /i for i in (lamp1, lamp2, lams)]
     

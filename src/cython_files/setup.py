@@ -62,7 +62,7 @@ def configuration(parent_package='',top_path=None):
         include_dirs = [wdir,numpy.get_include()],
         libraries = libs,
         extra_compile_args = [
-            '-DNDEBUG','-O3',
+            '-DNDEBUG','-O3'
             # '-g', '-O0', '-Wall', '-Wextra',
         ]
     )

@@ -119,7 +119,7 @@ class Raman():
     fv = 1e-12*c/l_vec
     index = 0
     master_index = 0
-    M1, M2, Q_large = fibre_overlaps_loader()
+    M1, M2, Q_large = fibre_overlaps_loader(1)
 
 
     def test_raman_off(self):

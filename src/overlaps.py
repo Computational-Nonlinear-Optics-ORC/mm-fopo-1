@@ -47,12 +47,12 @@ def calc_overlaps():
 
 
 
-def fibre_overlaps_loader(filepath='loading_data'):
+def fibre_overlaps_loader(dt,filepath='loading_data', fr = 0.18):
     """
     Loads, or calculates if not there, the M1, M2 and Q matrixes. 
     """
     overlap_file = os.path.join(filepath, 'M1_M2_new_2m.hdf5')
-    
+    kr = 1-fr
 
     if os.path.isfile(overlap_file):
         keys = ('M1', 'M2', 'Q')
@@ -63,6 +63,10 @@ def fibre_overlaps_loader(filepath='loading_data'):
         data = tuple(data)
     else:
         data = main()
+    
+    for i in range(data[-1].shape[-1]):
+        data[-1][1,i] = 2 * kr * data[-1][0, i] + kr * data[-1][1, i]
+    data[-1][0,:] *= 3 * fr * dt
     return data
 
 

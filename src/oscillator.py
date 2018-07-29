@@ -47,8 +47,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
                                            sim_wind.t)
 
     U[:, :] = fftshift(fft(u[:, :]), axes = -1)
-
-    sim_wind.w_tiled = np.tile(sim_wind.w + sim_wind.woffset, (int_fwm.nm, 1))
+    w_tiled = np.tile(sim_wind.w + sim_wind.woffset, (int_fwm.nm, 1))
     master_index = str(master_index)
 
     ex.exporter(index, int_fwm, sim_wind, u, U, D_param,
@@ -73,6 +72,11 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
     t_total = 0
     gam_no_aeff = -1j*int_fwm.n2*2*pi/sim_wind.lamda
     noise_new = noise_new_or*1
+    dz,dzstep,maxerr = int_fwm.dz,int_fwm.z,int_fwm.maxerr
+
+    Dop = np.ascontiguousarray(Dop / 2)
+    w_tiled = np.ascontiguousarray(w_tiled)
+    tsh = sim_wind.tsh
 
     while ro < max_rounds:
 
@@ -85,10 +89,10 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
         ex.exporter(index, int_fwm, sim_wind, u, U, D_param, 0, ro,  mode_names, master_index,
                     str(ro)+'1', pulse_pos_dict[3], D_pic[5], plots)
 
-        
-        u, U = pulse_propagation(u, U, int_fwm, M1, M2, Q_large,
-                                     sim_wind, hf, Dop, dAdzmm,gam_no_aeff)
-    
+
+        U, dz = pulse_propagation(u, dz, dzstep, maxerr, M1, M2, Q_large, w_tiled, tsh, hf, Dop, gam_no_aeff)
+
+
         ex.exporter(index, int_fwm, sim_wind, u, U, D_param, -1, ro, mode_names, master_index,
                     str(ro)+'2', pulse_pos_dict[0], D_pic[2], plots)
 
@@ -139,7 +143,7 @@ def formulate(index, n2, gama, alphadB, P_p1, P_p2, P_s, spl_losses,
     "----------------------------------------------------------"
 
     "---------------------Aeff-Qmatrixes-----------------------"
-    M1, M2, Q_large = fibre_overlaps_loader()
+    M1, M2, Q_large = fibre_overlaps_loader(sim_wind.dt)
     betas = load_disp_paramters(sim_wind.w0)
 
 
@@ -219,7 +223,7 @@ def main():
                                             # make the system in to a FOPA
     else:
         fopa = False
-    plots = True                            # Do you want plots, be carefull it makes the code very slow!
+    plots = False                           # Do you want plots, be carefull it makes the code very slow!
     N = 12                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
@@ -258,9 +262,8 @@ def main():
 
     lamp1 = 1549
     lamp2 = [1553.25,1554, 1555]
-    lams = np.linspace(1549, 1555, 256, endpoint= None)
-    lams = [1550, 1551]
-    lams = lams[1:]
+    lams = np.linspace(1549, 1565, 128, endpoint= None)
+    #lams = lams[2:]
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB,
                'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,
                'spl_losses': spl_losses,
