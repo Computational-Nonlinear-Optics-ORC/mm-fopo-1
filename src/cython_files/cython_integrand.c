@@ -10,7 +10,8 @@
             "src/multi_iter.h"
         ],
         "extra_compile_args": [
-            "-DNDEBUG"
+            "-DNDEBUG",
+            "-O3"
         ],
         "include_dirs": [
             "src",
@@ -2077,7 +2078,6 @@ static PyTypeObject *__pyx_array_type = 0;
 static PyTypeObject *__pyx_MemviewEnum_type = 0;
 static PyTypeObject *__pyx_memoryview_type = 0;
 static PyTypeObject *__pyx_memoryviewslice_type = 0;
-static double __pyx_v_16cython_integrand_Safety;
 static PyObject *generic = 0;
 static PyObject *strided = 0;
 static PyObject *indirect = 0;
@@ -5645,7 +5645,7 @@ static PyObject *__pyx_pf_16cython_integrand_6dAdzmm_roff_s1_cython(CYTHON_UNUSE
 
 /* "cython_integrand.pyx":167
  * 
- * cdef double Safety = 0.95
+ * DEF Safety = 0.95
  * cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double maxerr,             # <<<<<<<<<<<<<<
  *                         np.ndarray[unsigned int, ndim=2] M1, np.ndarray[unsigned int, ndim=2] M2,
  *                         double[:, ::1] Q, double[:, ::1] w_tiled,double tsh, complex128_t[:, ::1] hf,
@@ -5975,7 +5975,7 @@ static PyObject *__pyx_f_16cython_integrand_pulse_propagation(__Pyx_memviewslice
  * 
  */
         __pyx_t_11 = 0;
-        __pyx_v_dz = ((__pyx_v_dz * __pyx_v_16cython_integrand_Safety) * pow((__pyx_v_maxerr / (*((__pyx_t_16cython_integrand_double_t *) ( /* dim=0 */ ((char *) (((__pyx_t_16cython_integrand_double_t *) __pyx_v_delta.data) + __pyx_t_11)) )))), ((__pyx_t_16cython_integrand_double_t)0.25)));
+        __pyx_v_dz = ((__pyx_v_dz * 0.95) * pow((__pyx_v_maxerr / (*((__pyx_t_16cython_integrand_double_t *) ( /* dim=0 */ ((char *) (((__pyx_t_16cython_integrand_double_t *) __pyx_v_delta.data) + __pyx_t_11)) )))), ((__pyx_t_16cython_integrand_double_t)0.25)));
 
         /* "cython_integrand.pyx":194
  *             A = RK45CK(delta, u1new, M1, M2, Q, tsh, hf,
@@ -6027,7 +6027,7 @@ static PyObject *__pyx_f_16cython_integrand_pulse_propagation(__Pyx_memviewslice
  *         else:
  *             temp = Safety*dz*(maxerr/delta[0])**0.2
  */
-      __pyx_v_dz = (__pyx_v_16cython_integrand_Safety * __pyx_v_dzstep);
+      __pyx_v_dz = (0.95 * __pyx_v_dzstep);
 
       /* "cython_integrand.pyx":204
  *         dztot = dztot + dz
@@ -6048,7 +6048,7 @@ static PyObject *__pyx_f_16cython_integrand_pulse_propagation(__Pyx_memviewslice
  */
     /*else*/ {
       __pyx_t_13 = 0;
-      __pyx_v_temp = ((__pyx_v_16cython_integrand_Safety * __pyx_v_dz) * pow((__pyx_v_maxerr / (*((__pyx_t_16cython_integrand_double_t *) ( /* dim=0 */ ((char *) (((__pyx_t_16cython_integrand_double_t *) __pyx_v_delta.data) + __pyx_t_13)) )))), ((__pyx_t_16cython_integrand_double_t)0.2)));
+      __pyx_v_temp = ((0.95 * __pyx_v_dz) * pow((__pyx_v_maxerr / (*((__pyx_t_16cython_integrand_double_t *) ( /* dim=0 */ ((char *) (((__pyx_t_16cython_integrand_double_t *) __pyx_v_delta.data) + __pyx_t_13)) )))), ((__pyx_t_16cython_integrand_double_t)0.2)));
 
       /* "cython_integrand.pyx":208
  *         else:
@@ -6057,7 +6057,7 @@ static PyObject *__pyx_f_16cython_integrand_pulse_propagation(__Pyx_memviewslice
  *             dz = min(temp, temp2)
  *         ###################################################################
  */
-      __pyx_v_temp2 = (__pyx_v_16cython_integrand_Safety * __pyx_v_dzstep);
+      __pyx_v_temp2 = (0.95 * __pyx_v_dzstep);
 
       /* "cython_integrand.pyx":209
  *             temp = Safety*dz*(maxerr/delta[0])**0.2
@@ -6251,7 +6251,7 @@ static PyObject *__pyx_f_16cython_integrand_pulse_propagation(__Pyx_memviewslice
 
   /* "cython_integrand.pyx":167
  * 
- * cdef double Safety = 0.95
+ * DEF Safety = 0.95
  * cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double maxerr,             # <<<<<<<<<<<<<<
  *                         np.ndarray[unsigned int, ndim=2] M1, np.ndarray[unsigned int, ndim=2] M2,
  *                         double[:, ::1] Q, double[:, ::1] w_tiled,double tsh, complex128_t[:, ::1] hf,
@@ -6954,7 +6954,7 @@ static __Pyx_memviewslice __pyx_f_16cython_integrand_RK45CK(__Pyx_memviewslice _
   __Pyx_memviewslice __pyx_v_A5 = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_u6 = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_A6 = { 0, 0, { 0 }, { 0 }, { 0 } };
-  PyObject *__pyx_v_A = NULL;
+  __Pyx_memviewslice __pyx_v_A = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_Afourth = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_LocalBuf_ND __pyx_pybuffernd_M1;
   __Pyx_Buffer __pyx_pybuffer_M1;
@@ -6963,9 +6963,7 @@ static __Pyx_memviewslice __pyx_f_16cython_integrand_RK45CK(__Pyx_memviewslice _
   __Pyx_memviewslice __pyx_r = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_RefNannyDeclarations
   __Pyx_memviewslice __pyx_t_1 = { 0, 0, { 0 }, { 0 }, { 0 } };
-  PyObject *__pyx_t_2 = NULL;
-  __Pyx_memviewslice __pyx_t_3 = { 0, 0, { 0 }, { 0 }, { 0 } };
-  Py_ssize_t __pyx_t_4;
+  Py_ssize_t __pyx_t_2;
   __Pyx_RefNannySetupContext("RK45CK", 0);
   __pyx_pybuffer_M1.pybuffer.buf = NULL;
   __pyx_pybuffer_M1.refcount = 0;
@@ -7120,7 +7118,7 @@ static __Pyx_memviewslice __pyx_f_16cython_integrand_RK45CK(__Pyx_memviewslice _
  * 
  *     cdef complex128_t[:,::1] A6 = dAdzmm(u6, M1, M2, Q, tsh, hf, w_tiled,gama_temp)             # <<<<<<<<<<<<<<
  * 
- *     A = A_temp(u1, A1, A3, A4, A6, shape1,shape2)  # Fifth order accuracy
+ *     cdef complex128_t[:,::1] A = A_temp(u1, A1, A3, A4, A6, shape1,shape2)  # Fifth order accuracy
  */
   __pyx_t_1 = __pyx_f_16cython_integrand_dAdzmm(__pyx_v_u6, ((PyArrayObject *)__pyx_v_M1), ((PyArrayObject *)__pyx_v_M2), __pyx_v_Q, __pyx_v_tsh, __pyx_v_hf, __pyx_v_w_tiled, __pyx_v_gama_temp, 0); if (unlikely(!__pyx_t_1.memview)) __PYX_ERR(0, 282, __pyx_L1_error)
   __pyx_v_A6 = __pyx_t_1;
@@ -7130,34 +7128,26 @@ static __Pyx_memviewslice __pyx_f_16cython_integrand_RK45CK(__Pyx_memviewslice _
   /* "cython_integrand.pyx":284
  *     cdef complex128_t[:,::1] A6 = dAdzmm(u6, M1, M2, Q, tsh, hf, w_tiled,gama_temp)
  * 
- *     A = A_temp(u1, A1, A3, A4, A6, shape1,shape2)  # Fifth order accuracy             # <<<<<<<<<<<<<<
+ *     cdef complex128_t[:,::1] A = A_temp(u1, A1, A3, A4, A6, shape1,shape2)  # Fifth order accuracy             # <<<<<<<<<<<<<<
  * 
  *     cdef complex128_t[:,::1] Afourth = Afourth_temp(u1, A1, A3, A4, A5, A6, A, shape1,shape2)  # Fourth order accuracy
  */
   __pyx_t_1 = __pyx_f_16cython_integrand_A_temp(__pyx_v_u1, __pyx_v_A1, __pyx_v_A3, __pyx_v_A4, __pyx_v_A6, __pyx_v_shape1, __pyx_v_shape2, 0); if (unlikely(!__pyx_t_1.memview)) __PYX_ERR(0, 284, __pyx_L1_error)
-  __pyx_t_2 = __pyx_memoryview_fromslice(__pyx_t_1, 2, (PyObject *(*)(char *)) __pyx_memview_get___pyx_t_double_complex, (int (*)(char *, PyObject *)) __pyx_memview_set___pyx_t_double_complex, 0);; if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 284, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __PYX_XDEC_MEMVIEW(&__pyx_t_1, 1);
+  __pyx_v_A = __pyx_t_1;
   __pyx_t_1.memview = NULL;
   __pyx_t_1.data = NULL;
-  __pyx_v_A = __pyx_t_2;
-  __pyx_t_2 = 0;
 
   /* "cython_integrand.pyx":286
- *     A = A_temp(u1, A1, A3, A4, A6, shape1,shape2)  # Fifth order accuracy
+ *     cdef complex128_t[:,::1] A = A_temp(u1, A1, A3, A4, A6, shape1,shape2)  # Fifth order accuracy
  * 
  *     cdef complex128_t[:,::1] Afourth = Afourth_temp(u1, A1, A3, A4, A5, A6, A, shape1,shape2)  # Fourth order accuracy             # <<<<<<<<<<<<<<
  * 
  *     delta[0] = norm(Afourth, shape1,shape2)
  */
-  __pyx_t_1 = __Pyx_PyObject_to_MemoryviewSlice_d_dc___pyx_t_double_complex(__pyx_v_A, PyBUF_WRITABLE); if (unlikely(!__pyx_t_1.memview)) __PYX_ERR(0, 286, __pyx_L1_error)
-  __pyx_t_3 = __pyx_f_16cython_integrand_Afourth_temp(__pyx_v_u1, __pyx_v_A1, __pyx_v_A3, __pyx_v_A4, __pyx_v_A5, __pyx_v_A6, __pyx_t_1, __pyx_v_shape1, __pyx_v_shape2, 0); if (unlikely(!__pyx_t_3.memview)) __PYX_ERR(0, 286, __pyx_L1_error)
-  __PYX_XDEC_MEMVIEW(&__pyx_t_1, 1);
+  __pyx_t_1 = __pyx_f_16cython_integrand_Afourth_temp(__pyx_v_u1, __pyx_v_A1, __pyx_v_A3, __pyx_v_A4, __pyx_v_A5, __pyx_v_A6, __pyx_v_A, __pyx_v_shape1, __pyx_v_shape2, 0); if (unlikely(!__pyx_t_1.memview)) __PYX_ERR(0, 286, __pyx_L1_error)
+  __pyx_v_Afourth = __pyx_t_1;
   __pyx_t_1.memview = NULL;
   __pyx_t_1.data = NULL;
-  __pyx_v_Afourth = __pyx_t_3;
-  __pyx_t_3.memview = NULL;
-  __pyx_t_3.data = NULL;
 
   /* "cython_integrand.pyx":288
  *     cdef complex128_t[:,::1] Afourth = Afourth_temp(u1, A1, A3, A4, A5, A6, A, shape1,shape2)  # Fourth order accuracy
@@ -7166,8 +7156,8 @@ static __Pyx_memviewslice __pyx_f_16cython_integrand_RK45CK(__Pyx_memviewslice _
  * 
  * 
  */
-  __pyx_t_4 = 0;
-  *((__pyx_t_16cython_integrand_double_t *) ( /* dim=0 */ ((char *) (((__pyx_t_16cython_integrand_double_t *) __pyx_v_delta.data) + __pyx_t_4)) )) = __pyx_f_16cython_integrand_norm(__pyx_v_Afourth, __pyx_v_shape1, __pyx_v_shape2, 0);
+  __pyx_t_2 = 0;
+  *((__pyx_t_16cython_integrand_double_t *) ( /* dim=0 */ ((char *) (((__pyx_t_16cython_integrand_double_t *) __pyx_v_delta.data) + __pyx_t_2)) )) = __pyx_f_16cython_integrand_norm(__pyx_v_Afourth, __pyx_v_shape1, __pyx_v_shape2, 0);
 
   /* "cython_integrand.pyx":291
  * 
@@ -7176,10 +7166,8 @@ static __Pyx_memviewslice __pyx_f_16cython_integrand_RK45CK(__Pyx_memviewslice _
  * 
  * 
  */
-  __pyx_t_3 = __Pyx_PyObject_to_MemoryviewSlice_d_dc___pyx_t_double_complex(__pyx_v_A, PyBUF_WRITABLE); if (unlikely(!__pyx_t_3.memview)) __PYX_ERR(0, 291, __pyx_L1_error)
-  __pyx_r = __pyx_t_3;
-  __pyx_t_3.memview = NULL;
-  __pyx_t_3.data = NULL;
+  __PYX_INC_MEMVIEW(&__pyx_v_A, 0);
+  __pyx_r = __pyx_v_A;
   goto __pyx_L0;
 
   /* "cython_integrand.pyx":242
@@ -7193,8 +7181,6 @@ static __Pyx_memviewslice __pyx_f_16cython_integrand_RK45CK(__Pyx_memviewslice _
   /* function exit code */
   __pyx_L1_error:;
   __PYX_XDEC_MEMVIEW(&__pyx_t_1, 1);
-  __Pyx_XDECREF(__pyx_t_2);
-  __PYX_XDEC_MEMVIEW(&__pyx_t_3, 1);
   { PyObject *__pyx_type, *__pyx_value, *__pyx_tb;
     __Pyx_PyThreadState_declare
     __Pyx_PyThreadState_assign
@@ -7225,7 +7211,7 @@ static __Pyx_memviewslice __pyx_f_16cython_integrand_RK45CK(__Pyx_memviewslice _
   __PYX_XDEC_MEMVIEW(&__pyx_v_A5, 1);
   __PYX_XDEC_MEMVIEW(&__pyx_v_u6, 1);
   __PYX_XDEC_MEMVIEW(&__pyx_v_A6, 1);
-  __Pyx_XDECREF(__pyx_v_A);
+  __PYX_XDEC_MEMVIEW(&__pyx_v_A, 1);
   __PYX_XDEC_MEMVIEW(&__pyx_v_Afourth, 1);
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
@@ -27878,15 +27864,6 @@ if (!__Pyx_RefNanny) {
   __Pyx_GOTREF(__pyx_t_1);
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_1) < 0) __PYX_ERR(0, 2, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-  /* "cython_integrand.pyx":166
- * ############################################ Pulse_prop ############################################
- * 
- * cdef double Safety = 0.95             # <<<<<<<<<<<<<<
- * cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double maxerr,
- *                         np.ndarray[unsigned int, ndim=2] M1, np.ndarray[unsigned int, ndim=2] M2,
- */
-  __pyx_v_16cython_integrand_Safety = 0.95;
 
   /* "cython_integrand.pyx":485
  * 

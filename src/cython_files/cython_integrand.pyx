@@ -163,7 +163,7 @@ cpdef complex128_t[:, ::1] dAdzmm_roff_s1_cython(complex128_t[:, ::1] u0,
     return N
 ############################################ Pulse_prop ############################################
 
-cdef double Safety = 0.95
+DEF Safety = 0.95
 cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double maxerr,
                         np.ndarray[unsigned int, ndim=2] M1, np.ndarray[unsigned int, ndim=2] M2,
                         double[:, ::1] Q, double[:, ::1] w_tiled,double tsh, complex128_t[:, ::1] hf,
@@ -281,7 +281,7 @@ cdef complex128_t[:,::1] RK45CK(double_t[::1] delta, complex128_t[:, ::1] u1, np
 
     cdef complex128_t[:,::1] A6 = dAdzmm(u6, M1, M2, Q, tsh, hf, w_tiled,gama_temp)
 
-    A = A_temp(u1, A1, A3, A4, A6, shape1,shape2)  # Fifth order accuracy
+    cdef complex128_t[:,::1] A = A_temp(u1, A1, A3, A4, A6, shape1,shape2)  # Fifth order accuracy
 
     cdef complex128_t[:,::1] Afourth = Afourth_temp(u1, A1, A3, A4, A5, A6, A, shape1,shape2)  # Fourth order accuracy
 

@@ -223,7 +223,7 @@ def main():
                                             # make the system in to a FOPA
     else:
         fopa = False
-    plots = False                           # Do you want plots, be carefull it makes the code very slow!
+    plots = True                           # Do you want plots, be carefull it makes the code very slow!
     N = 12                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
