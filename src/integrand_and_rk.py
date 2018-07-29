@@ -36,39 +36,6 @@ trgt = 'cpu'
 #trgt = 'parallel'
 #trgt = 'cuda'
 
-@jit(nopython=True,nogil = True)
-def Afourth_temp(u1, A1, A3, A4, A5, A6):
-    return u1 + (2825./27648)*A1 + (18575./48384)*A3 + (13525./55296) * \
-        A4 + (277./14336)*A5 + (1./4)*A6
-
-@jit(nopython=True,nogil = True)
-def A_temp(u1, A1, A3, A4, A6):
-    return u1 + (37./378)*A1 + (250./621)*A3 + (125./594) * \
-        A4 + (512./1771)*A6
-
-@jit(nopython=True,nogil = True)
-def A2_temp(u1, A1):
-    return u1 + (1./5)*A1
-
-@jit(nopython=True,nogil = True)
-def A3_temp(u1, A1, A2):
-    return u1 + (3./40)*A1 + (9./40)*A2
-
-@jit(nopython=True,nogil = True)
-def A4_temp(u1, A1, A2, A3):
-    return u1 + (3./10)*A1 - (9./10)*A2 + (6./5)*A3
-
-@jit(nopython=True,nogil = True)
-def A5_temp(u1, A1, A2, A3, A4):
-    return u1 - (11./54)*A1 + (5./2)*A2 - (70./27)*A3 + (35./27)*A4
-
-
-@jit(nopython=True,nogil = True)
-def A6_temp(u1, A1, A2, A3, A4, A5):
-    return u1 + (1631./55296)*A1 + (175./512)*A2 + (575./13824)*A3 +\
-                   (44275./110592)*A4 + (253./4096)*A5
-
-
 
 
 #@jit(nogil = True)

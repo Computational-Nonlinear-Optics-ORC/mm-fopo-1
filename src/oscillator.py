@@ -45,11 +45,8 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
     woff3 = (p2_pos+(int_fwm.nt)//2)*2*pi*sim_wind.df
     u[1, :] += (D_param['P_p2'])**0.5 * np.exp(1j*(woff3) *
                                            sim_wind.t)
-    with open('u.pickle','rb') as f:
-        u = pickle.load(f) 
 
     U[:, :] = fftshift(fft(u[:, :]), axes = -1)
-
     w_tiled = np.tile(sim_wind.w + sim_wind.woffset, (int_fwm.nm, 1))
     master_index = str(master_index)
 
@@ -76,7 +73,8 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
     gam_no_aeff = -1j*int_fwm.n2*2*pi/sim_wind.lamda
     noise_new = noise_new_or*1
     dz,dzstep,maxerr = int_fwm.dz,int_fwm.z,int_fwm.maxerr
-    Dop = np.ascontiguousarray(Dop) / 2
+
+    Dop = np.ascontiguousarray(Dop / 2)
     w_tiled = np.ascontiguousarray(w_tiled)
     tsh = sim_wind.tsh
 
@@ -91,9 +89,9 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
         ex.exporter(index, int_fwm, sim_wind, u, U, D_param, 0, ro,  mode_names, master_index,
                     str(ro)+'1', pulse_pos_dict[3], D_pic[5], plots)
 
-        t = time()
+
         U, dz = pulse_propagation(u, dz, dzstep, maxerr, M1, M2, Q_large, w_tiled, tsh, hf, Dop, gam_no_aeff)
-        print(time() - t)
+
 
         ex.exporter(index, int_fwm, sim_wind, u, U, D_param, -1, ro, mode_names, master_index,
                     str(ro)+'2', pulse_pos_dict[0], D_pic[2], plots)
@@ -225,7 +223,7 @@ def main():
                                             # make the system in to a FOPA
     else:
         fopa = False
-    plots = True                           # Do you want plots, be carefull it makes the code very slow!
+    plots = False                           # Do you want plots, be carefull it makes the code very slow!
     N = 12                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
@@ -246,7 +244,7 @@ def main():
     n2 = 2.5e-20                            # Nonlinear index [m/W]
     gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
-    z = 2000                                 # Length of the fibre
+    z = 100                                 # Length of the fibre
     P_p1 = dbm2w(30.5 - 3)
     P_p2 = dbm2w(30.5 - 3)
     P_s = dbm2w(30.5 - 3 - 24)#1e-3#1e-3

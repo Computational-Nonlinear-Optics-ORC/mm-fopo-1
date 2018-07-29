@@ -170,7 +170,7 @@ cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double
                         complex128_t[:, ::1] Dop,  complex128_t gam_no_aeff):
                         
 
-    """Pulse propagation"""
+    """Pulse propagation using SSFM"""
 
     cdef double dztot = 0.  # total distance traveled
     cdef int shape1 = u1.shape[0]
@@ -181,7 +181,7 @@ cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double
     cdef complex128_t[:,::1] A = np.empty([shape1,shape2], dtype='complex_')
     cdef double_t[::1] delta = np.empty(1, dtype = 'double')
     cdef int exitt = 0
-    cdef double  temp, temp2, 
+    cdef double  temp, temp2
 
 
     while exitt == 0:
@@ -189,10 +189,8 @@ cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double
         delta[0] = 2*maxerr
         while delta[0] > maxerr:
             u1new = half_disp_step(u1, Dop, dz, shape1, shape2)
-
             A = RK45CK(delta, u1new, M1, M2, Q, tsh, hf,
                     w_tiled, gam_no_aeff, dz, shape1, shape2)
-
             if (delta[0] > maxerr):
                 # calculate the step (shorter) to redo
                 dz = dz * Safety*(maxerr/delta[0])**0.25
@@ -200,6 +198,7 @@ cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double
 
         #############Successful step###############
         u1 = half_disp_step(A, Dop, dz, shape1,shape2)
+
         dztot = dztot + dz
 
         if (delta[0] == 0):
@@ -215,16 +214,19 @@ cpdef pulse_propagation(complex128_t[:,::1] u1, double dz, double dzstep, double
         elif (temp >= dzstep):
             dz = dzstep - dztot
         ###################################################################
+
     U = cyfft(u1)
     U = cyfftshift(U)
     return np.asarray(U), dz
 
 
-cpdef complex128_t[:,::1] half_disp_step(complex128_t[:,::1] u, complex128_t[:,::1] Dop, double dz, int shape1, long shape2):
+cpdef complex128_t[:,::1] half_disp_step(complex128_t[:,::1] u,
+                         complex128_t[:,::1] Dop, double dz, int shape1, long shape2):
     #np.fft.ifft(np.exp(Dop*dz/2) * np.fft.fft(u1))
     cdef complex128_t[:,::1] temp1 = np.empty([shape1,shape2], dtype='complex_')
     cdef complex128_t[:,::1] temp2 = np.empty([shape1,shape2], dtype='complex_')
-    cdef int i, j
+    cdef int i
+    cdef long j
     for i in range(shape1):
         for j in range(shape2):
             temp1[i,j] = cexp(Dop[i,j] * dz)
@@ -289,7 +291,7 @@ cdef complex128_t[:,::1] RK45CK(double_t[::1] delta, complex128_t[:, ::1] u1, np
     return A
 
 
-cdef complex128_t[:,::1] A2_temp(complex128_t[:,::1] u1, complex128_t[:,::1] A1, int shape1, long shape2):
+cpdef complex128_t[:,::1] A2_temp(complex128_t[:,::1] u1, complex128_t[:,::1] A1, int shape1, long shape2):
     cdef complex128_t[:,::1] A = np.empty([shape1,shape2], dtype='complex_')
     cdef int i
     cdef long j
@@ -299,7 +301,7 @@ cdef complex128_t[:,::1] A2_temp(complex128_t[:,::1] u1, complex128_t[:,::1] A1,
     return A
 
 
-cdef complex128_t[:,::1] A3_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
+cpdef complex128_t[:,::1] A3_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
                                     complex128_t[:,::1] A2, int shape1, long shape2):
 
     cdef int i
@@ -312,7 +314,7 @@ cdef complex128_t[:,::1] A3_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
 
 
 
-cdef complex128_t[:,::1] A4_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
+cpdef complex128_t[:,::1] A4_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
                                     complex128_t[:,::1] A2,complex128_t[:,::1] A3,
                                     int shape1, long shape2):
     cdef int i
@@ -324,7 +326,7 @@ cdef complex128_t[:,::1] A4_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
     return A
 
 
-cdef complex128_t[:,::1] A5_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
+cpdef complex128_t[:,::1] A5_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
                                     complex128_t[:,::1] A2,complex128_t[:,::1] A3,
                                     complex128_t[:,::1] A4, int shape1, long shape2):
 
@@ -338,7 +340,7 @@ cdef complex128_t[:,::1] A5_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
 
 
 
-cdef complex128_t[:,::1] A6_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
+cpdef complex128_t[:,::1] A6_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
                                 complex128_t[:,::1] A2,complex128_t[:,::1] A3,complex128_t[:,::1] A4,
                                 complex128_t[:,::1] A5, int shape1, long shape2):
     cdef int i
@@ -351,7 +353,7 @@ cdef complex128_t[:,::1] A6_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
     return A
 
 
-cdef complex128_t[:,::1] Afourth_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
+cpdef complex128_t[:,::1] Afourth_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
                                         complex128_t[:,::1] A3,complex128_t[:,::1] A4,
                                         complex128_t[:,::1] A5,complex128_t[:,::1] A6,
                                         complex128_t[:,::1] Afifth, int shape1, long shape2):
@@ -371,7 +373,7 @@ cdef complex128_t[:,::1] Afourth_temp(complex128_t[:,::1] u1,complex128_t[:,::1]
     return Aerr
 
 
-cdef complex128_t[:,::1] A_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
+cpdef complex128_t[:,::1] A_temp(complex128_t[:,::1] u1,complex128_t[:,::1] A1,
                                  complex128_t[:,::1] A3,complex128_t[:,::1] A4,
                                  complex128_t[:,::1] A6, int shape1, long shape2):
     cdef int i
@@ -389,12 +391,13 @@ cpdef double_t norm(complex128_t[:,::1] A, int shape1, long shape2):
     cdef int i
     cdef long j
     cdef double[::1] sum1 = np.zeros(shape1, dtype='double')
+    cdef complex128_t[:,::1] A_2 = np.empty([shape1, shape2], dtype='complex_')
     for i in range(shape1):
         for j in range(shape2):
-            A[i,j] = cabs(A[i,j])**2
+            A_2[i,j] = cabs(A[i,j])**2
     for i in range(shape1):
         for j in range(shape2):
-            sum1[i] = sum1[i] + <double>(A[i,j])
+            sum1[i] = sum1[i] + <double>(A_2[i,j])
     for i in range(shape1):
         sum1[i] = sum1[i]**0.5
     cdef double res = max(sum1[0], sum1[1])
@@ -502,7 +505,7 @@ cdef np.ndarray __allocate_result(np.ndarray x_arr, int f_type):
     return f_arr
 
 
-cdef np.ndarray[complex128_t, ndim= 2] cyfft(complex128_t[:, ::1] x_arr):
+cpdef np.ndarray[complex128_t, ndim= 2] cyfft(complex128_t[:, ::1] x_arr):
     """
     Uses MKL to perform 1D FFT on the input array x along the given axis.
     """
@@ -514,7 +517,7 @@ cdef np.ndarray[complex128_t, ndim= 2] cyfft(complex128_t[:, ::1] x_arr):
 
     return f_arr
 
-cdef np.ndarray[complex128_t, ndim= 2] cyifft(complex128_t[:, ::1] x_arr):
+cpdef np.ndarray[complex128_t, ndim= 2] cyifft(complex128_t[:, ::1] x_arr):
     """
     Uses MKL to perform 1D iFFT on the input array x along the given axis.
     """

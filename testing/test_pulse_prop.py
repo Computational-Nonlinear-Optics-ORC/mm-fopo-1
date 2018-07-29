@@ -275,10 +275,11 @@ def test_half_disp():
 def test_cython_norm():
     shape1 = 2
     shape2 = 2**12
-    A = np.random.randn(shape1, shape2) + 1j * np.random.randn(shape1, shape2)
 
-    cython_norm = norm(A,shape1,shape2)
+    A = np.random.randn(shape1, shape2) + 1j * np.random.randn(shape1, shape2)
+    cython_norm = np.asarray(norm(A,shape1,shape2))
     python_norm = np.linalg.norm(A,2, axis = -1).max()
+
     assert_allclose(cython_norm, python_norm)
 
 def test_fftishit():
@@ -289,3 +290,70 @@ def test_fftishit():
     cython_shift = np.asarray(cyfftshift(A))
     python_shift = np.fft.fftshift(A, axes = -1)
     assert_allclose(cython_shift, python_shift)
+
+def test_fft():
+    shape1 = 2
+    shape2 = 2**12
+    A = np.random.randn(shape1, shape2) + 1j * np.random.randn(shape1, shape2)
+
+    cython_fft = cyfft(A)
+    python_fft = np.fft.fft(A)
+    assert_allclose(cython_fft, python_fft)
+
+def test_ifft():
+    shape1 = 2
+    shape2 = 2**12
+    A = np.random.randn(shape1, shape2) + 1j * np.random.randn(shape1, shape2)
+
+    cython_fft = cyifft(A)
+    python_fft = np.fft.ifft(A)
+    assert_allclose(cython_fft, python_fft)
+
+
+class Test_CK_operators:
+
+    shape1 = 2
+    shape2 = 2**12
+    u1 = np.random.randn(shape1, shape2) + 1j * np.random.randn(shape1, shape2)
+    A1 = np.random.randn(shape1, shape2) + 1j * np.random.randn(shape1, shape2)
+    A2 = np.asarray(A2_temp(u1, A1, shape1, shape2))
+    
+    A3 = np.asarray(A3_temp(u1, A1, A2, shape1,shape2))
+    A4 = np.asarray(A4_temp(u1, A1, A2, A3, shape1,shape2))
+    A5 = np.asarray(A5_temp(u1, A1, A2, A3, A4, shape1,shape2))
+    A6 = np.asarray(A6_temp(u1, A1, A2, A3, A4, A5, shape1,shape2))
+    A = np.asarray(A_temp(u1, A1, A3, A4, A6, shape1,shape2))
+    Afourth = np.asarray(Afourth_temp(u1, A1, A3, A4, A5, A6, A, shape1,shape2))
+    
+
+    def test_A2(self):
+        A2_python = self.u1 + (1./5)*self.A1
+        assert_allclose(self.A2, A2_python)
+
+    def test_A3(self):
+        A3_python = self.u1 + (3./40)*self.A1 + (9./40)*self.A2
+        assert_allclose(self.A3, A3_python)
+
+    def test_A4(self):
+        A4_python = self.u1 + (3./10)*self.A1 - (9./10)*self.A2 + (6./5)*self.A3
+        assert_allclose(self.A4, A4_python)
+
+    def test_A5(self):
+        A5_python = self.u1 - (11./54)*self.A1 + (5./2)*self.A2 - (70./27)*self.A3 + (35./27)*self.A4
+        assert_allclose(self.A5, A5_python)
+
+    def test_A6(self):
+        A6_python = self.u1 + (1631./55296)*self.A1 + (175./512)*self.A2 + (575./13824)*self.A3 +\
+                   (44275./110592)*self.A4 + (253./4096)*self.A5
+        assert_allclose(self.A6, A6_python)
+
+    def test_A(self):
+        A_python = self.u1 + (37./378)*self.A1 + (250./621)*self.A3 + (125./594) * \
+                    self.A4 + (512./1771)*self.A6
+        assert_allclose(self.A, A_python)
+
+    def test_Afourth(self):
+        Afourth_python = self.u1 + (2825./27648)*self.A1 + (18575./48384)*self.A3 + (13525./55296) * \
+        self.A4 + (277./14336)*self.A5 + (1./4)*self.A6
+        Afourth_python = self.A - Afourth_python
+        assert_allclose(self.Afourth, Afourth_python)
