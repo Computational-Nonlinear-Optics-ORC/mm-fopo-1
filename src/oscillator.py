@@ -194,7 +194,7 @@ def formulate(index, n2, gama, alphadB, P_p1, P_p2, P_s, spl_losses,
     elif WDMS_pars[-1] == 'bandpass':
         WDM_vec = [Bandpass_WDM(D_freq['where'], i, sim_wind.fv, fopa)
                    for i in WDMS_pars[:-1]]  # WDM up downs in wavelengths [m]
-
+    
     "--------------------------------------------------------"
 
     "----------------------Formulate splicers--------------------"
@@ -247,7 +247,7 @@ def main():
     z = 100                                 # Length of the fibre
     P_p1 = dbm2w(30.5 - 3)
     P_p2 = dbm2w(30.5 - 3)
-    P_s = dbm2w(30.5 - 3 - 24)#1e-3#1e-3
+    P_s = 2*dbm2w(30.5 - 3 - 24)#1e-3#1e-3
     spl_losses = [0, 0, 0.]
     lamda_c = 1.5508e-6
     WDMS_pars = ([1549., 1550.],
@@ -262,7 +262,9 @@ def main():
 
     lamp1 = 1549
     lamp2 = [1553.25,1554, 1555]
+    lamp2 = [1553.25]
     lams = np.linspace(1549, 1565, 128, endpoint= None)
+    lams = [1565]
     #lams = lams[2:]
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB,
                'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,

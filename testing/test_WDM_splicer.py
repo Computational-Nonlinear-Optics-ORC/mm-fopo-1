@@ -215,3 +215,55 @@ class Test_bandpass_1m():
 
     def test1m_WDM_time(self):
         assert_allclose(self.u_in_tot, self.u_out_tot, rtol=1e-05)
+
+
+
+def test_WDM_phase_modulation():
+    
+    lamp1 = 1549
+    lamp2 = 1555
+    lams = 1550
+    N = 10
+    nt = 2**N
+
+    int_fwm = sim_parameters(2.5e-20, 2, [0,0])
+    int_fwm.general_options(1e-15, 1, 1, 'on')
+    int_fwm.propagation_parameters(N, 10, 100)
+    fv, D_freq = fv_creator(lamp1,lamp2, lams, int_fwm)
+    sim_wind = sim_window(fv, lamp1*1e-9, 1.5508e-6, int_fwm)
+    
+
+    perc = 100 * np.random.rand(len(D_freq['where']))
+
+    WDMS = Bandpass_WDM(D_freq['where'], perc, fv, 'false')
+
+
+    pm = Phase_modulation_infase_WDM(D_freq['where'], WDMS)
+
+
+
+    U1 = np.random.randint(0,100) * np.random.randn(2, nt) + \
+         np.random.randint(0,100) * 1j * np.random.randn(2, nt)
+    U2 = np.random.randint(0,100) * np.random.randn(2, nt) + \
+         np.random.randint(0,100)  * 1j * np.random.randn(2, nt)
+    
+    U_in = (U1, U2)
+
+    a_non = WDMS.pass_through(U_in, sim_wind)[0]
+    U2cp = np.copy(U2)
+    pm.modulate(U1,U2)
+    assert_allclose(U2[1,:],U2cp[1,:])
+
+
+    U_in = (U1, U2)
+
+    a_mod= WDMS.pass_through(U_in, sim_wind)[0]
+    
+    sig_idx = D_freq['where'][2]
+
+
+    e1 = np.abs(a_mod[1][0, sig_idx])**2
+    e2 = np.abs(a_non[1][0, sig_idx])**2
+
+    assert((e1 > e2) or np.allclose(e1,e2,equal_nan=True))
+   

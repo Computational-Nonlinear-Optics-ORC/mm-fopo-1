@@ -351,7 +351,7 @@ class WDM(object):
     def set_SMR(self, z, kinter_lp01, kinter_lp11):
         """
         Returns the scattering matrix. in form
-        [nm, (port1-3, port 1-4), (port2-3, port 2-4), nt]
+        [(port1-3, port 1-4), (port2-3, port 2-4), nm, nt]
         """
 
         A = np.empty([2,2,2,len(self.fv)], dtype = np.complex128)
@@ -799,3 +799,19 @@ def dispersion_operator(betas, int_fwm, sim_wind):
     Dop[1, :] -= 1j*(betas[1, 0] - betas[1, 1]*(w) +
                      (betas[1, 2]*(w)**2)/2. + (betas[1, 3]*(w)**3)/6.)
     return Dop
+
+
+class Phase_modulation_infase_WDM(object):
+    """
+    Makes sure that the signal is in phase with the oscillating signal 
+    comiing in so we can get constructive inteference.
+    """
+    def __init__(self, wave_vec_idx, WDM_1):
+        self.A = WDM_1.A[0]
+        self.idx = wave_vec_idx[2]
+
+    def modulate(self, U1, U2):
+        dphi = np.angle(U1[0, self.idx] * self.A[0,0, self.idx]) -\
+                 np.angle(U2[0, self.idx] * self.A[1,0, self.idx])
+        U2[0,:] *= np.exp(1j * dphi)
+        return None
