@@ -6,7 +6,7 @@
 Two mode Fibre Optical Patametric Oscillator (FOPO) project code. 
 
 Requirements:
-* Linux system. Tested and developed on Ubuntu 16.14
+* Linux system. Tested and developed on Ubuntu 16.04 LTS
 * MKL libraries. Can be found [here](https://software.seek.intel.com/performance-libraries). Compiled version for Linux are in the repository.
 * Python 3.6
 
