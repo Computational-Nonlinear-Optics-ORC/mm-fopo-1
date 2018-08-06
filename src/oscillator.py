@@ -225,7 +225,7 @@ def main():
                                             # make the system in to a FOPA
     else:
         fopa = False
-    plots = False                           # Do you want plots, be carefull it makes the code very slow!
+    plots = True                           # Do you want plots, be carefull it makes the code very slow!
     N = 12                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
@@ -266,7 +266,7 @@ def main():
     lamp2 = [1553.25,1554, 1555]
     lamp2 = [1553.25]
     lams = np.linspace(1549, 1565, 128, endpoint= None)
-    lams = [1565]
+    lams = [1550]
     #lams = lams[2:]
     var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB,
                'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,
