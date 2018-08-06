@@ -18,7 +18,7 @@ from overlaps import fibre_overlaps_loader
 def oscilate(sim_wind, int_fwm, noise_obj, index,
              master_index,
              splicers_vec, WDM_vec, M1, M2, Q_large, hf, Dop, dAdzmm, D_pic,
-             pulse_pos_dict_or, plots, mode_names, ex, fopa, D_param):
+             pulse_pos_dict_or, plots, mode_names, ex, fopa, D_param, pm):
 
     u = np.empty(
         [int_fwm.nm, len(sim_wind.t)], dtype='complex128')
@@ -109,7 +109,8 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
 
         (u[:, :], U[:, :]) = splicers_vec[2].pass_through(
             (U[:, :], noise_new), sim_wind)[0]
-
+        # Modulate the phase to be in phase with what is coming in
+        pm.modulate(U_original_pump, U)
         # Pass again through WDM1 with the signal now
         (u[:, :], U[:, :]) = WDM_vec[0].pass_through(
             (U_original_pump, U[:, :]), sim_wind)[0]
@@ -203,10 +204,11 @@ def formulate(index, n2, gama, alphadB, P_p1, P_p2, P_s, spl_losses,
 
     D_param = {**D_freq, **{'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s}} 
 
+    pm = Phase_modulation_infase_WDM(D_freq['where'], WDM_vec[0])
 
     oscilate(sim_wind, int_fwm, noise_obj, index, master_index, splicers_vec,
              WDM_vec, M1, M2, Q_large, hf, Dop_large, dAdzmm, D_pic,
-             pulse_pos_dict_or, plots, mode_names, ex, fopa,D_param )
+             pulse_pos_dict_or, plots, mode_names, ex, fopa,D_param,pm )
     return None
 
 
