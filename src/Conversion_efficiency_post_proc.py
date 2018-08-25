@@ -52,6 +52,13 @@ class Conversion_efficiency(object):
 
 
         self.U_in, self.U_out = self.load_spectrum(possition,filename, filepath)
+        #print(self.U_in.shape)
+        #print(self.U_out.shape)
+        #sys.exit()
+
+
+        #self.U_in = dbm2w(np.max(w2dbm(self.U_in[0,:])) - w2dbm(self.U_in))
+        #self.U_out  = dbm2w(w2dbm(np.max(self.U_out[0,0,:])) - w2dbm(self.U_out))
 
         if type(last) is float:
             self.last = int(last* self.U_out.shape[1])
@@ -111,7 +118,7 @@ class Conversion_efficiency(object):
         start_i = np.argmin(np.abs(self.fv - start_vec[2]))
         end_i = np.argmin(np.abs(self.fv - end_vec[2]))
         
-        self.spec = self.U_in[0]
+        self.spec = self.U_out[0,0,:]
         self.P_signal_in = self.calc_P_out(start_i,end_i)
 
 
@@ -125,7 +132,7 @@ class Conversion_efficiency(object):
         D_now['P_out'] = np.mean(self.P_out_vec[:,-self.last::], axis = 1)
         
 
-        D_now['CE'] = 100*D_now['P_out']/ self.P_signal_in
+        D_now['CE'] = D_now['P_out']/ self.P_signal_in
 
         D_now['P_out_std'] = np.std(self.P_out_vec[:,-self.last::], axis = 1)
 
@@ -334,6 +341,7 @@ def read_CE_table(x_key,y_key ,filename, std = False, decibels = False):
 
 
 def plot_CE(x_key,y_key,std = True, decibels = False,filename = 'CE', filepath='output_final/', filesave= None):
+    
     x, y, err_bars = read_CE_table(x_key,y_key,filepath+filename,decibels = decibels,std = std )
 
 
@@ -344,16 +352,16 @@ def plot_CE(x_key,y_key,std = True, decibels = False,filename = 'CE', filepath='
     mode_labels = ('LP01x','LP01y')
 
 
-    plt.plot(x,y)
+    
     if std:
         plt.errorbar(x,y, yerr=err_bars, capsize= 10)
     else:
-        plt.plot(x,y)
+        plt.plot(x - 1549,y)
     
     plt.xlabel(x_key)
     plt.ylabel(y_key)
     plt.grid()
-
+    plt.xticks(np.arange(0, 2.75, 0.25))
 
 
     
@@ -362,7 +370,7 @@ def plot_CE(x_key,y_key,std = True, decibels = False,filename = 'CE', filepath='
     plt.savefig(filesave+'.png',bbox_inches = 'tight')
     data = (x, y,err_bars)
     with open(str(filesave)+'.pickle','wb') as f:
-        pl.dump((fig,data),f)
+        pl.dump(data,f)
     plt.clf()
     plt.close('all')
     return None
@@ -451,7 +459,7 @@ wavelengths = [1200,1400,1050,930,800]
 
 
 os.system('rm -r output_final ; mkdir output_final')
-for pos in ('2','4'):
+for pos in ('2',):
 
     for ii in outside_vec:
         ii = str(ii)

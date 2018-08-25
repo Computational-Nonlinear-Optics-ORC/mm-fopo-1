@@ -5,13 +5,13 @@
 source activate intel
 echo 'starting...'
 rm -r output*
-rm -r *src/__*
-cd src/cython_files
+#rm -r *src/__*
+#cd src/cython_files
 #rm -rf build *so *c *html
 
-python setup.py build_ext --inplace
-cython -a cython_integrand.pyx
-cd ../..
+#python setup.py build_ext --inplace
+#cython -a cython_integrand.pyx
+#cd ../..
 rm error_log
 if [ "$3" == "mpi" ]
 then

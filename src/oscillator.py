@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+sys.path.append('src')
 from scipy.constants import c, pi
 from joblib import Parallel, delayed
 from mpi4py.futures import MPIPoolExecutor
@@ -127,7 +128,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
 
 
 @unpack_args
-def formulate(index, n2, gama, alphadB, P_p1, P_p2, P_s, spl_losses,
+def formulate(index, n2, alphadB, P_p1, P_p2, P_s, spl_losses,
               lamda_c, WDMS_pars, lamp1, lamp2, lams, num_cores,
               maxerr, ss, ram, plots,
               N, nt, master_index, nm, mode_names, fopa,z):
@@ -195,7 +196,7 @@ def formulate(index, n2, gama, alphadB, P_p1, P_p2, P_s, spl_losses,
     elif WDMS_pars[-1] == 'bandpass':
         WDM_vec = [Bandpass_WDM(D_freq['where'], i, sim_wind.fv, fopa)
                    for i in WDMS_pars[:-1]]  # WDM up downs in wavelengths [m]
-    
+
     "--------------------------------------------------------"
 
     "----------------------Formulate splicers--------------------"
@@ -225,11 +226,11 @@ def main():
                                             # make the system in to a FOPA
     else:
         fopa = False
-    plots = True                           # Do you want plots, be carefull it makes the code very slow!
+    plots = False                           # Do you want plots, be carefull it makes the code very slow!
     N = 12                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
-    # Number of modes (include degenerate polarisation)
+
     
     nm = 2
     mode_names = ['LP01', 'LP11a']         # Names of modes for plotting
@@ -244,31 +245,32 @@ def main():
                   'N': N, 'nt': nt, 'nm': nm, 'mode_names': mode_names, 'fopa':fopa}
     "------------------------Can be variable parameters------------------------"
     n2 = 2.5e-20                            # Nonlinear index [m/W]
-    gama = 10e-3                            # Overwirtes n2 and Aeff w/m        
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
-    z = 100                                 # Length of the fibre
+    z = 1000                                 # Length of the fibre
     P_p1 = dbm2w(30.5 - 3)
     P_p2 = dbm2w(30.5 - 3)
-    P_s = 2*dbm2w(30.5 - 3 - 24)#1e-3#1e-3
-    spl_losses = [0, 0, 0.]
+    P_s = dbm2w(30.5 - 3 - 24)#1e-3#1e-3
+    spl_losses = [0, 0, 1.]
     lamda_c = 1.5508e-6
     WDMS_pars = ([1549., 1550.],
                  [1555,  1556.], 'WDM')  # WDM up downs in wavelengths [m]
     
     WDMS_pars = ([100, 100, 50, 0, 100, 0],
                  [100, 100, 100, 0, 100, 0], 'prc')  # WDM up downs in wavelengths [m]
-    
-    WDMS_pars = ([100, 100, 50, 0, 100, 0],
-             [100, 100, 100, 0, 0, 0], 'bandpass')  # Bandpass filter system [m]
+    # Bandpass filter system [m]
+    WDMS_pars = []
+    for i in (50,):#range(5, 100, 5):
+        WDMS_pars.append(([100, 100, i, 0, 100, 0],
+                 [100, 100, 100, 0, 0, 0], 'bandpass'))
 
-
+    WDMS_pars = WDMS_pars[0]
     lamp1 = 1549
-    lamp2 = [1553.25,1554, 1555]
-    lamp2 = [1553.25]
-    lams = np.linspace(1549, 1565, 128, endpoint= None)
-    lams = [1550]
-    #lams = lams[2:]
-    var_dic = {'n2': n2, 'gama': gama, 'alphadB': alphadB,
+    lamp2 = [1553.25501708,1553.40606559]#, 1555]
+    #lamp2 = [1553.25]
+    lams = np.linspace(1549, 1549+2.5, 512, endpoint= None)
+    #lams = [1550]
+    lams = lams[2:]
+    var_dic = {'n2': n2, 'alphadB': alphadB,
                'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,
                'spl_losses': spl_losses,
                'lamda_c': lamda_c, 'WDMS_pars': WDMS_pars,

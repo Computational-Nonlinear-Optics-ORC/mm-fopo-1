@@ -743,7 +743,7 @@ def dbeta00(lc, filepath='loading_data'):
                          0.5 - (1-2*lc**2/(pi**2 * n * w0**2))**0.5)
     beta1 = (2*pi*n/lc)*((1-lc**2/(pi**2 * n * w1**2)) **
                          0.5 - (1-2*lc**2/(pi**2 * n * w1**2))**0.5)
-    return beta1 - beta0
+    return beta1 - beta0 
 
 
 def load_disp_paramters(w0, lamda_c=1.5508e-6):
@@ -754,10 +754,10 @@ def load_disp_paramters(w0, lamda_c=1.5508e-6):
     betap = np.zeros([2, 4])
     dbeta0 = dbeta00(lamda_c)
 
-    D = np.array([19.4e6, 21.8e6])
+    D = np.array([19.8e6, 21.8e6])
     S = np.array([0.068e15, 0.063e15])
-    dbeta1 = 98e-3
-
+    dbeta1 = -98e-3
+    
     beta2 = -D[:]*(lamda_c**2/(2*pi*c_norm))  # [ps**2/m]
     beta3 = lamda_c**4*S[:]/(4*(pi*c_norm)**2) + \
         lamda_c**3*D[:]/(2*(pi*c_norm)**2)  # [ps**3/m]
@@ -765,8 +765,8 @@ def load_disp_paramters(w0, lamda_c=1.5508e-6):
     wc = 2 * pi * c_norm / lamda_c
     w0 *= 1e-12
 
-    dbeta1 += (beta2[0] - beta2[1]) * (w0 - wc) + \
-        0.5*(beta3[0] - beta3[1]) * (w0 - wc)**2
+    dbeta1 += (beta2[1] - beta2[0]) * (w0 - wc) + \
+        0.5*(beta3[1] - beta3[0]) * (w0 - wc)**2
 
     for i in range(2):
         beta2[i] += beta3[i] * (w0 - wc)
@@ -789,14 +789,14 @@ def dispersion_operator(betas, int_fwm, sim_wind):
     Returns Dispersion operator
     """
 
-    w = sim_wind.w #+ sim_wind.woffset
+    w = sim_wind.w + sim_wind.woffset
 
     Dop = np.zeros((2, w.shape[0]), dtype=np.complex)
 
     Dop -= fftshift(int_fwm.alpha/2, axes=-1)
 
     Dop[0, :] -= 1j*((betas[0, 2]*(w)**2)/2. + (betas[0, 3]*(w)**3)/6.)
-    Dop[1, :] -= 1j*(betas[1, 0] - betas[1, 1]*(w) +
+    Dop[1, :] -= 1j*(betas[1, 0] + betas[1, 1]*(w) +
                      (betas[1, 2]*(w)**2)/2. + (betas[1, 3]*(w)**3)/6.)
     return Dop
 
