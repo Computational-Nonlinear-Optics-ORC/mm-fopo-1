@@ -19,7 +19,7 @@ from matplotlib.colors import LogNorm
 from numpy.fft import fftshift
 import scipy
 from os import listdir
-
+from joblib import Parallel, delayed
 font = {'size'   : 16}
 matplotlib.rc('font'
               , **font)
@@ -205,7 +205,7 @@ class Conversion_efficiency(object):
         return None
 
 
-    def P_out_round(self,P,filepath,filesave):
+    def P_out_round(self,P,CE,filepath,filesave):
         """Plots the output average power with respect to round trip number"""
         x = range(P.shape[-1])
         y = np.asanyarray(P)
@@ -231,7 +231,7 @@ class Conversion_efficiency(object):
         return None
 
 
-    def final_1D_spec(self,filename,wavelengths = None):
+    def final_1D_spec(self,ii,CE,filename,wavelengths = None):
         x,y = self.fv, self.U_large_norm[:,-1,:]
         fig = plt.figure(figsize=(20.0, 10.0))
         for i in range(y.shape[0]):
@@ -244,18 +244,17 @@ class Conversion_efficiency(object):
         plt.grid()
         plt.xlabel(r'$f (THz)$')
         plt.ylabel(r'Spec (dB)')
-        plt.ylim([-200,1])
-        plt.xlim([192, 194.5])
+        #plt.ylim([-200,1])
+        #plt.xlim([192, 194.5])
         plt.savefig(filename+'.png', bbox_inches = 'tight')
 
 
         data = (x, y)
-        with open(filename+str(ii)+'.pickle','wb') as f:
-            pl.dump((data,CE._data),f)
+        #with open(filename+str(ii)+'.pickle','wb') as f:
+        #    pl.dump((data,CE._data),f)
         plt.clf()
         plt.close('all')
         return None
-
 
 
 def plot_rin(var,var2 = 'rin',filename = 'CE', filepath='output_final/', filesave= None):
@@ -432,6 +431,48 @@ def tick_function(X):
     return ["%.2f" % z for z in l]
 
 
+
+def main2(ii):
+    ii = str(ii)
+    which = which_l+ ii
+    
+    os.system('mkdir output_final/'+str(ii))
+    os.system('mkdir output_final/'+str(ii)+'/pos'+pos+'/ ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/many ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/spectra;'
+             +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers;'
+             +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/BS;'
+             +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/PC;'
+             +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/MI;'
+             +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/P1;'
+             +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/P2;'
+             +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/S;'
+             +'mkdir output_final/'+str(ii)+'/pos'+pos+'/casc_powers;'
+             +'mkdir output_final/'+str(ii)+'/pos'+pos+'/final_specs;')
+
+
+    for i in inside_vec[int(ii)]:
+        print(ii,i)
+        CE = Conversion_efficiency(freq_band_HW = 'df',possition = pos,last = 0.5,\
+            safety = 2, filename = 'data_large',\
+            filepath = which+'/output'+str(i)+'/data/',filepath2 = 'output_final/'+str(ii)+'/pos'+str(pos)+'/')
+
+        fmin,fmax,rounds  = 310,330,2000#np.min(CE.fv),np.max(CE.fv),None
+        fmin,fmax,rounds = None,None, None
+
+        #if CE.U_large_norm.shape[0]>1:
+        #    contor_plot(CE,fmin,fmax,rounds,folder = 'output_final/'+str(ii)+'/pos'+pos+'/spectra/',filename= str(ii)+'_'+str(i))
+        #contor_plot_time(CE, rounds = None,filename = 'output_final/'+str(ii)+'/pos'+pos+'/'+'time_'+str(ii)+'_'+str(i))
+        CE.P_out_round(CE.P_out_vec,CE,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/powers/', filesave =str(ii)+'_'+str(i))
+        CE.final_1D_spec(ii,CE,filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(i),wavelengths = wavelengths)
+        del CE
+        gc.collect()
+    for x_key,y_key,std, decibel in (('l_s', 'P_out_bs',False, False), ('l_s', 'CE_bs',False, True), ('l_s', 'rin_bs',False, False),\
+                            ('l_s', 'P_out_pc',False, False), ('l_s', 'CE_pc',False, True), ('l_s', 'rin_pc',False, False)):
+        plot_CE(x_key,y_key,std = std,decibels = decibel, filename = 'CE',\
+            filepath='output_final/'+str(ii)+'/pos'+pos+'/', filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many/'+y_key+str(ii))
+    return None
+
+
+
 #from os.path import , join
 data_dump =  'output_dump'
 outside_dirs = [f for f in listdir(data_dump)]
@@ -459,44 +500,11 @@ wavelengths = [1200,1400,1050,930,800]
 
 
 os.system('rm -r output_final ; mkdir output_final')
-for pos in ('2',):
+for pos in ('2', '4'):
 
-    for ii in outside_vec:
-        ii = str(ii)
-        which = which_l+ ii
-        
-        os.system('mkdir output_final/'+str(ii))
-        os.system('mkdir output_final/'+str(ii)+'/pos'+pos+'/ ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/many ;'+'mkdir output_final/'+str(ii)+'/pos'+pos+'/spectra;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/BS;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/PC;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/MI;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/P1;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/P2;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/powers/S;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/casc_powers;'
-                 +'mkdir output_final/'+str(ii)+'/pos'+pos+'/final_specs;')
+    #for ii in outside_vec:
+    A = Parallel(n_jobs=6)(delayed(main2)(ii) for ii in outside_vec)
 
-
-        for i in inside_vec[int(ii)]:
-            print(ii,i)
-            CE = Conversion_efficiency(freq_band_HW = 'df',possition = pos,last = 0.5,\
-                safety = 2, filename = 'data_large',\
-                filepath = which+'/output'+str(i)+'/data/',filepath2 = 'output_final/'+str(ii)+'/pos'+str(pos)+'/')
-
-            fmin,fmax,rounds  = 310,330,2000#np.min(CE.fv),np.max(CE.fv),None
-            fmin,fmax,rounds = None,None, None
-
-            #if CE.U_large_norm.shape[0]>1:
-            #    contor_plot(CE,fmin,fmax,rounds,folder = 'output_final/'+str(ii)+'/pos'+pos+'/spectra/',filename= str(ii)+'_'+str(i))
-            #contor_plot_time(CE, rounds = None,filename = 'output_final/'+str(ii)+'/pos'+pos+'/'+'time_'+str(ii)+'_'+str(i))
-            CE.P_out_round(CE.P_out_vec,filepath =  'output_final/'+str(ii)+'/pos'+pos+'/powers/', filesave =str(ii)+'_'+str(i))
-            CE.final_1D_spec(filename = 'output_final/'+str(ii)+'/pos'+pos+'/final_specs/'+'spectrum_fopo_final'+str(i),wavelengths = wavelengths)
-            del CE
-            gc.collect()
-        for x_key,y_key,std, decibel in (('l_s', 'P_out_bs',False, False), ('l_s', 'CE_bs',False, True), ('l_s', 'rin_bs',False, False),\
-                                ('l_s', 'P_out_pc',False, False), ('l_s', 'CE_pc',False, True), ('l_s', 'rin_pc',False, False)):
-            plot_CE(x_key,y_key,std = std,decibels = decibel, filename = 'CE',\
-                filepath='output_final/'+str(ii)+'/pos'+pos+'/', filesave = 'output_final/'+str(ii)+'/pos'+pos+'/many/'+y_key+str(ii))
         
     #os.system('rm -r prev_anim/*; mv animators* prev_anim')
+

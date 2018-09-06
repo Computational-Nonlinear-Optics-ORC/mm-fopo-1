@@ -248,7 +248,7 @@ def main():
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
     z = 1000                                 # Length of the fibre
     P_p1 = dbm2w(30.5 - 3)
-    P_p2 = dbm2w(30.5 - 3)
+    P_p2 = dbm2w(30.5 - 4)
     P_s = dbm2w(30.5 - 3 - 24)#1e-3#1e-3
     spl_losses = [0, 0, 1.]
     lamda_c = 1.5508e-6
@@ -265,9 +265,9 @@ def main():
 
     WDMS_pars = WDMS_pars[0]
     lamp1 = 1549
-    lamp2 = [1553.25501708,1553.40606559]#, 1555]
+    lamp2 = [1553.50048583,1554.50204646]#, 1555]
     #lamp2 = [1553.25]
-    lams = np.linspace(1549, 1549+2.5, 512, endpoint= None)
+    lams = np.linspace(1549, 1549+2, 64)
     #lams = [1550]
     lams = lams[2:]
     var_dic = {'n2': n2, 'alphadB': alphadB,

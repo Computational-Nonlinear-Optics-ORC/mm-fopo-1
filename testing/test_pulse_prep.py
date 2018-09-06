@@ -223,7 +223,7 @@ def test_betap():
     assert_allclose(betap1[0,:2], np.array([0,0]))
 
 
-    D = np.array([19.4e6,21.8e6])
+    D = np.array([19.8e6,21.8e6])
     S = np.array([0.068e15,0.063e15])
 
     beta2 = -D[:]*(lamda_c**2/(2*pi*c_norm))                                                #[ps**2/m]
@@ -231,11 +231,5 @@ def test_betap():
 
 
     assert_allclose(betap1[0,:2], np.array([0,0])) 
-    assert_allclose(betap1[1,1], 9.8e-02) 
+    assert_allclose(betap1[1,1], -9.5e-02) 
     assert_allclose(betap1[:,2:], np.array([beta2, beta3]).T) 
-
-
-    w0 =  2 * pi * c / 1.5598e-6
-    betap2 = load_disp_paramters(w0,lamda_c = 1.5508e-6)
-
-    assert not(np.allclose(betap1,betap2))

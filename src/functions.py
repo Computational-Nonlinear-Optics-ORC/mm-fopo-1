@@ -218,7 +218,7 @@ class sim_window(object):
         self.deltaf = np.max(self.fv) - np.min(self.fv)  # [THz]
         self.df = self.deltaf/int_fwm.nt  # [THz]
         self.T = 1/self.df  # Time window (period)[ps]
-        self.woffset = 2*pi*(self.fmed - c/lamda)*1e-12  # [rad/ps]
+        self.woffset = 2*pi*(self.fmed - c/lamda_c)*1e-12  # [rad/ps]
         self.w0 = 2*pi*self.fmed  # central angular frequency [rad/s]
         self.tsh = 1/self.w0*1e12  # shock time [ps]
         self.dt = self.T/int_fwm.nt  # timestep (dt)     [ps]
@@ -746,7 +746,8 @@ def dbeta00(lc, filepath='loading_data'):
     return beta1 - beta0 
 
 
-def load_disp_paramters(w0, lamda_c=1.5508e-6):
+
+def load_disp_paramters(sim_wind,lamda_c=1.5508e-6):
     """
     Returns the betas (taylor expansion coefficients) of the Telecom fibre.
     """
@@ -754,22 +755,16 @@ def load_disp_paramters(w0, lamda_c=1.5508e-6):
     betap = np.zeros([2, 4])
     dbeta0 = dbeta00(lamda_c)
 
-    D = np.array([19.8e6, 21.8e6])
+    #D = np.array([20e6, 22.8e6])
+    D = np.array([19.8*1e6, 21.8*1e6])
     S = np.array([0.068e15, 0.063e15])
-    dbeta1 = -98e-3
+    #S = np.array([0.105*1e15,0.108*1e15])
+    dbeta1 = -95e-3
     
     beta2 = -D[:]*(lamda_c**2/(2*pi*c_norm))  # [ps**2/m]
     beta3 = lamda_c**4*S[:]/(4*(pi*c_norm)**2) + \
         lamda_c**3*D[:]/(2*(pi*c_norm)**2)  # [ps**3/m]
 
-    wc = 2 * pi * c_norm / lamda_c
-    w0 *= 1e-12
-
-    dbeta1 += (beta2[1] - beta2[0]) * (w0 - wc) + \
-        0.5*(beta3[1] - beta3[0]) * (w0 - wc)**2
-
-    for i in range(2):
-        beta2[i] += beta3[i] * (w0 - wc)
 
     betap[0, 2] = beta2[0]
     betap[0, 3] = beta3[0]
@@ -783,7 +778,7 @@ def load_disp_paramters(w0, lamda_c=1.5508e-6):
 
 def dispersion_operator(betas, int_fwm, sim_wind):
     """
-    Calculates the dispersion operator in rad/m units
+    Calculates the dispersion operator
     Inputed are the dispersion operators at the omega0
     Local include the taylor expansion to get these opeators at omegac 
     Returns Dispersion operator
