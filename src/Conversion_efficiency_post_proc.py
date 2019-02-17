@@ -118,7 +118,8 @@ class Conversion_efficiency(object):
         start_i = np.argmin(np.abs(self.fv - start_vec[2]))
         end_i = np.argmin(np.abs(self.fv - end_vec[2]))
         
-        self.spec = self.U_out[0,0,:]
+        self.spec = self.U_out[0,0,:] #use compare for FOPA telecoms experiments!
+        self.spec = self.U_in[0,:]
         self.P_signal_in = self.calc_P_out(start_i,end_i)
 
 
