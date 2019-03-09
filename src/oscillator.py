@@ -14,7 +14,6 @@ from time import time, sleep
 from overlaps import fibre_overlaps_loader
 
 
-
 @profile
 def oscilate(sim_wind, int_fwm, noise_obj, index,
              master_index,
@@ -86,23 +85,18 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
         pulse_pos_dict = [
             'round ' + str(ro)+', ' + i for i in pulse_pos_dict_or]
 
-        ex.exporter(index, int_fwm, sim_wind, u, U, D_param, 0, ro,  mode_names, master_index,
-                    str(ro)+'1', pulse_pos_dict[3], D_pic[5], plots)
-
 
         U, dz = pulse_propagation(u, dz, dzstep, maxerr, M1, M2, Q_large, w_tiled, tsh, hf, Dop, gam_no_aeff)
-
-
-        ex.exporter(index, int_fwm, sim_wind, u, U, D_param, -1, ro, mode_names, master_index,
-                    str(ro)+'2', pulse_pos_dict[0], D_pic[2], plots)
+        if ro  == max_rounds:
+            ex.exporter(index, int_fwm, sim_wind, u, U, D_param, -1, ro, mode_names, master_index,
+                            str(ro)+'2', pulse_pos_dict[0], D_pic[2], plots)
+                
         
         # pass through WDM2 port 2 continues and port 1 is out of the loop
         noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
         (u[:, :], U[:, :]),(out1, out2) = WDM_vec[1].pass_through(
             (U[:, :], noise_new), sim_wind)
 
-        ex.exporter(index, int_fwm, sim_wind, u, U, D_param, -1, ro,  mode_names, master_index,
-                    str(ro)+'3', pulse_pos_dict[1], D_pic[3], plots)
 
         # Splice7 after WDM2 for the signal
         noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
@@ -117,9 +111,9 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
             (U_original_pump, U[:, :]), sim_wind)[0]
 
         ################################The outbound stuff#####################
-        ex.exporter(index, int_fwm, sim_wind, out1, out2, D_param, -
-                    1, ro,  mode_names, master_index, str(ro)+'4',
-                    pulse_pos_dict[4], D_pic[6], plots)
+    ex.exporter(index, int_fwm, sim_wind, out1, out2, D_param, -
+                1, ro,  mode_names, master_index, str(ro)+'4',
+                pulse_pos_dict[4], D_pic[6], plots)
     if max_rounds == 0:
         max_rounds =1
     consolidate(max_rounds, int_fwm,master_index, index)
@@ -248,6 +242,7 @@ def main():
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
     z = [5, 10, 25, 50, 100, 200, 400, 600, 800, 1000]  # Length of the fibre
     z = np.linspace(1, 1000, 100)
+    z = [10, 100]
     P_p1 = dbm2w(30.5 - 3)
     P_p2 = dbm2w(30.5 - 4)
     P_s = dbm2w(30.5 - 3 - 24)#1e-3#1e-3
@@ -268,9 +263,9 @@ def main():
     lamp2 = [1553.50048583,1554.50204646]#, 1555]
     lamp2 = 1553.50048583
     #lamp2 = [1553.25]
-    lams = np.linspace(1549, 1549+5, 256)
+    lams = np.linspace(1549, 1549+5, 12)
     #lams = [1550]
-    lams = lams[5:]
+    #lams = lams[5:]
     var_dic = {'n2': n2, 'alphadB': alphadB,
                'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,
                'spl_losses': spl_losses,

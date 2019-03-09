@@ -156,13 +156,12 @@ def consolidate(max_rounds, int_fwm,master_index, index,  filename = 'data_large
     save_variables(file_save, 'input', **D)
 
 
-    U_cons = np.zeros([2,max_rounds, int_fwm.nt], dtype = np.float64)
+    U_cons = np.zeros([2, int_fwm.nt], dtype = np.float64)
     # Reading of all the oscillating spectra and sending them to a 3D array
     unfortmated_string = '{}/{}/U'
     with h5py.File(file_read+'.hdf5', 'r') as f:
-        for pop in range(1,5):
-            for r in range(max_rounds):
-                U_cons[:,r,:] = f.get(unfortmated_string.format(pop,r)).value
+        for pop in (2,4):
+            U_cons[:,:] = f.get(unfortmated_string.format(pop,max_rounds)).value
             save_variables(file_save, 'results/'+str(pop), U = U_cons)            
     os.system('mv '+file_save+'.hdf5 '+file_read+'.hdf5')
     return None

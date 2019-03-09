@@ -52,9 +52,9 @@ class Conversion_efficiency(object):
 
 
         self.U_in, self.U_out = self.load_spectrum(possition,filename, filepath)
-        #print(self.U_in.shape)
-        #print(self.U_out.shape)
-        #sys.exit()
+
+        self.U_out = np.reshape(self.U_out, (self.U_out.shape[0], 1, self.U_out.shape[-1]))
+
 
 
         #self.U_in = dbm2w(np.max(w2dbm(self.U_in[0,:])) - w2dbm(self.U_in))
@@ -212,7 +212,7 @@ class Conversion_efficiency(object):
         y = np.asanyarray(P)
         names = ('MI', 'P1', 'S', 'PC', 'P2', 'BS')
        
-
+        return None
         for i, name in enumerate(names):
             fig = plt.figure(figsize=(20.0, 10.0))
             plt.subplots_adjust(hspace=0.1)
@@ -501,7 +501,7 @@ wavelengths = [1200,1400,1050,930,800]
 
 
 os.system('rm -r output_final ; mkdir output_final')
-for pos in ('2',):
+for pos in ('2','4'):
 
     #for ii in outside_vec:
     A = Parallel(n_jobs=6)(delayed(main2)(ii) for ii in outside_vec)
