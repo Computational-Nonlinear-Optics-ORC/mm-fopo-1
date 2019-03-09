@@ -72,6 +72,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
 
     t_total = 0
     gam_no_aeff = -1j*int_fwm.n2*2*pi/sim_wind.lamda
+    noise_new = noise_new_or*1
     dz,dzstep,maxerr = int_fwm.dz,int_fwm.z,int_fwm.maxerr
 
     Dop = np.ascontiguousarray(Dop / 2)
@@ -95,7 +96,7 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
 
         ex.exporter(index, int_fwm, sim_wind, u, U, D_param, -1, ro, mode_names, master_index,
                     str(ro)+'2', pulse_pos_dict[0], D_pic[2], plots)
-        
+
         # pass through WDM2 port 2 continues and port 1 is out of the loop
         noise_new = noise_obj.noise_func_freq(int_fwm, sim_wind)
         (u[:, :], U[:, :]),(out1, out2) = WDM_vec[1].pass_through(
@@ -111,7 +112,6 @@ def oscilate(sim_wind, int_fwm, noise_obj, index,
             (U[:, :], noise_new), sim_wind)[0]
         # Modulate the phase to be in phase with what is coming in
         pm.modulate(U_original_pump, U)
-        
         # Pass again through WDM1 with the signal now
         (u[:, :], U[:, :]) = WDM_vec[0].pass_through(
             (U_original_pump, U[:, :]), sim_wind)[0]
@@ -226,7 +226,7 @@ def main():
                                             # make the system in to a FOPA
     else:
         fopa = False
-    plots = True                           # Do you want plots, be carefull it makes the code very slow!
+    plots = False                           # Do you want plots, be carefull it makes the code very slow!
     N = 12                                   # 2**N grid points
     nt = 2**N                               # number of grid points
     nplot = 2                               # number of plots within fibre min is 2
@@ -247,7 +247,7 @@ def main():
     n2 = 2.5e-20                            # Nonlinear index [m/W]
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
     z = [5, 10, 25, 50, 100, 200, 400, 600, 800, 1000]  # Length of the fibre
-    z = np.linspace(1, 1000, 100)
+    z = z[-1]
     P_p1 = dbm2w(30.5 - 3)
     P_p2 = dbm2w(30.5 - 4)
     P_s = dbm2w(30.5 - 3 - 24)#1e-3#1e-3
@@ -256,13 +256,13 @@ def main():
     WDMS_pars = ([1549., 1550.],
                  [1555,  1556.], 'WDM')  # WDM up downs in wavelengths [m]
     
-    WDMS_pars = ([100, 100, 20, 0, 100, 0],
-                 [100, 100, 100, 0, 100, 0], 'bandpass')  # WDM up downs in wavelengths [m]
+    WDMS_pars = ([100, 100, 50, 0, 100, 0],
+                 [100, 100, 100, 0, 100, 0], 'prc')  # WDM up downs in wavelengths [m]
     # Bandpass filter system [m]
-    #WDMS_pars = []
-    #for i in range(5, 100, 5):
-    #    WDMS_pars.append([[100, 100, i, 0, 100, 0],
-    #             [100, 100, 100, 0, 0, 0], 'bandpass'])
+    WDMS_pars = []
+    for i in range(5, 100, 5):
+        WDMS_pars.append([[100, 100, i, 0, 100, 0],
+                 [100, 100, 100, 0, 0, 0], 'bandpass'])
 
     lamp1 = 1549
     lamp2 = [1553.50048583,1554.50204646]#, 1555]
@@ -278,7 +278,7 @@ def main():
                'lamp1': lamp1,'lamp2': lamp2, 'lams': lams, 'z':z}
 
     "--------------------------------------------------------------------------"
-    outside_var_key = 'z'
+    outside_var_key = 'WDMS_pars'
     inside_var_key = 'lams'
     inside_var = var_dic[inside_var_key]
     outside_var = var_dic[outside_var_key]

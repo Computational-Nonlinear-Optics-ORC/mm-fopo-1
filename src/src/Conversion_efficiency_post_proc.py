@@ -501,7 +501,7 @@ wavelengths = [1200,1400,1050,930,800]
 
 
 os.system('rm -r output_final ; mkdir output_final')
-for pos in ('2',):
+for pos in ('4',):
 
     #for ii in outside_vec:
     A = Parallel(n_jobs=6)(delayed(main2)(ii) for ii in outside_vec)
