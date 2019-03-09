@@ -242,7 +242,7 @@ def main():
     alphadB = np.array([0,0])              # loss within fibre[dB/m]
     z = [5, 10, 25, 50, 100, 200, 400, 600, 800, 1000]  # Length of the fibre
     z = np.linspace(1, 1000, 100)
-    z = [10, 100]
+
     P_p1 = dbm2w(30.5 - 3)
     P_p2 = dbm2w(30.5 - 4)
     P_s = dbm2w(30.5 - 3 - 24)#1e-3#1e-3
@@ -263,9 +263,9 @@ def main():
     lamp2 = [1553.50048583,1554.50204646]#, 1555]
     lamp2 = 1553.50048583
     #lamp2 = [1553.25]
-    lams = np.linspace(1549, 1549+5, 12)
+    lams = np.linspace(1549, 1549+5, 256)
     #lams = [1550]
-    #lams = lams[5:]
+    lams = lams[5:]
     var_dic = {'n2': n2, 'alphadB': alphadB,
                'P_p1': P_p1, 'P_p2': P_p2, 'P_s': P_s,
                'spl_losses': spl_losses,
