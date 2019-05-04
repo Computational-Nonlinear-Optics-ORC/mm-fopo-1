@@ -1,0 +1,14 @@
+
+language: python
+sudo: required
+python:
+  - "3.6"
+# command to install dependencies
+install:
+  - bash build_intall.sh
+# command to run tests
+script:
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - source activate intel
+  - python --version
+- pytest testing/test*.py
