@@ -1,6 +1,6 @@
 # mm-fopo
 
-[![Build Status](https://travis-ci.com/Computational-Nonlinear-Optics-ORC/mm-fopo.svg?token=UafEdqSJuFtM7z2nYK1k&branch=master)](https://travis-ci.com/Computational-Nonlinear-Optics-ORC/mm-fopo)
+[![Build Status](https://travis-ci.com/Computational-Nonlinear-Optics-ORC/mm-fopo-1.svg?branch=master)](https://travis-ci.com/Computational-Nonlinear-Optics-ORC/mm-fopo-1)
 
 
 Two mode Fibre Optical Patametric Oscillator (FOPO) project code. 
