@@ -1,4 +1,3 @@
-
 language: python
 sudo: required
 python:
@@ -11,4 +10,4 @@ script:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - source activate intel
   - python --version
-- pytest testing/test*.py
+  - pytest testing/test*.py
