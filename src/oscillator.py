@@ -183,7 +183,7 @@ def formulate(index, n2, alphadB, P_p1, P_p2, P_s, spl_losses,
     dAdzmm = integrand.dAdzmm
     raman = raman_object(int_fwm.ram, int_fwm.how)
     raman.raman_load(sim_wind.t, sim_wind.dt, M2)
-    hf = 0*raman.hf
+    hf = raman.hf
     "--------------------------------------------------------"
     print(WDMS_pars)
     "----------------------Formulate WDMS--------------------"
